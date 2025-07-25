@@ -46,8 +46,10 @@ export default function AddProduct() {
     return () => previews.forEach((url) => URL.revokeObjectURL(url));
   }, [mainImages]);
 
+  // Preserve order of selection by converting FileList to Array
   const handleMainImagesChange = (e) => {
-    setMainImages([...e.target.files]);
+    const files = Array.from(e.target.files);
+    setMainImages(files);
   };
 
   const handleAddVariant = () => {
@@ -124,6 +126,7 @@ export default function AddProduct() {
         perSqFtPrice: Number(perSqFtPrice),
         perPanelSqFt: Number(perPanelSqFt),
         imageUrls: uploadedMainUrls,
+        thumbnail: uploadedMainUrls[0] || null, // First image as thumbnail, or null if none
         variants: finalVariants,
       };
 
