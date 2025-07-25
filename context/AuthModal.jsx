@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 import Image from 'next/image';
 import { assets } from '@/assets/assets';
 
-export default function AuthModal({ isOpen, onClose, onVerify }) {
+export default function AuthModal({ isOpen, onClose /*, onVerify*/ }) {
   const [step, setStep] = useState('phone');
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
@@ -32,6 +32,11 @@ export default function AuthModal({ isOpen, onClose, onVerify }) {
   };
 
   const verifyOtp = async () => {
+    if (sessionStorage.getItem('otp_verified') === 'true') {
+      toast.success('Already verified!');
+      return;
+    }
+
     if (code.length < 6) return toast.error('Enter 6‑digit code');
     setLoading(true);
     try {
@@ -41,7 +46,7 @@ export default function AuthModal({ isOpen, onClose, onVerify }) {
       });
       toast.success('Verified!');
       sessionStorage.setItem('otp_verified', 'true');
-      // onVerify();
+      // onVerify(); // Clerk logic commented
       // setTimeout(onClose, 500);
     } catch {
       toast.error('Invalid OTP');
@@ -118,7 +123,7 @@ export default function AuthModal({ isOpen, onClose, onVerify }) {
           </>
         )}
 
-        {/* OTP STEP: single full-width box */}
+        {/* OTP STEP */}
         {step === 'otp' && (
           <input
             type="text"
@@ -138,8 +143,7 @@ export default function AuthModal({ isOpen, onClose, onVerify }) {
           className={`w-full py-3 rounded-xl text-white font-medium transition
             ${loading
               ? 'bg-red-400 cursor-wait'
-              : 'bg-[#e80808] hover:bg-[#cc0606] focus:ring-2 focus:ring-offset-1 focus:ring-[#e80808]'}
-          `}
+              : 'bg-[#e80808] hover:bg-[#cc0606] focus:ring-2 focus:ring-offset-1 focus:ring-[#e80808]'}`}
         >
           {loading
             ? step === 'phone'
