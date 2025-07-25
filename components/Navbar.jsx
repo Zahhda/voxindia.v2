@@ -20,6 +20,11 @@ export default function Navbar() {
   const [isOtpVerified, setIsOtpVerified] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // New pressed states for icons
+  const [pressedWishlist, setPressedWishlist] = useState(false);
+  const [pressedCart, setPressedCart] = useState(false);
+  const [pressedUser, setPressedUser] = useState(false);
+
   const cartCount = Object.values(cartItems || {}).reduce((a, b) => a + b, 0);
   const wishlistCount = 0; // placeholder
 
@@ -36,11 +41,17 @@ export default function Navbar() {
     openSignIn();
   };
 
+  // Helper to handle press styling
+  const handlePress = (setPressed) => {
+    setPressed(true);
+    setTimeout(() => setPressed(false), 200); // remove effect after 200ms
+  };
+
   return (
     <>
       <nav className="flex items-center justify-between px-4 md:px-16 py-2 border-b bg-white z-10">
         {/* Logo (smaller) */}
-        <div className="cursor-pointer" onClick={() => router.push('/')}>  
+        <div className="cursor-pointer" onClick={() => router.push('/')}>
           <Image src={assets.logo} alt="Logo" width={80} height={24} />
         </div>
 
@@ -61,7 +72,15 @@ export default function Navbar() {
         {/* Right Icons */}
         <div className="flex items-center gap-4">
           {/* Wishlist using HeartIcon */}
-          <button className="relative text-gray-600 hover:text-red-600 hidden sm:block">
+          <button
+            onClick={() => {
+              handlePress(setPressedWishlist);
+              // existing wishlist logic here (if any)
+            }}
+            className={`relative text-gray-600 hover:text-red-600 hidden sm:block
+              ${pressedWishlist ? 'bg-gray-200 bg-opacity-40 rounded-full p-1' : 'p-0'}
+            `}
+          >
             <HeartIcon className="h-6 w-6 stroke-2" />
             {wishlistCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
@@ -71,7 +90,15 @@ export default function Navbar() {
           </button>
 
           {/* Cart using BagOpenIcon (ShoppingBag alias) */}
-          <button onClick={() => setIsCartOpen(true)} className="relative text-gray-600 hover:text-gray-900">
+          <button
+            onClick={() => {
+              handlePress(setPressedCart);
+              setIsCartOpen(true);
+            }}
+            className={`relative text-gray-600 hover:text-gray-900
+              ${pressedCart ? 'bg-gray-200 bg-opacity-40 rounded-full p-1' : 'p-0'}
+            `}
+          >
             <BagOpenIcon className="h-6 w-6 stroke-2" />
             {cartCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
@@ -111,10 +138,13 @@ export default function Navbar() {
           ) : (
             <button
               onClick={() => {
+                handlePress(setPressedUser);
                 if (!isOtpVerified) setShowAuthModal(true);
                 else openSignIn();
               }}
-              className="text-gray-600 hover:text-gray-900"
+              className={`text-gray-600 hover:text-gray-900
+                ${pressedUser ? 'bg-gray-200 bg-opacity-40 rounded-full p-1' : 'p-0'}
+              `}
               aria-label="Account"
             >
               <UserIcon className="h-6 w-6 stroke-2" />

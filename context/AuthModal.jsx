@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -8,13 +8,13 @@ import Image from 'next/image';
 import { assets } from '@/assets/assets';
 
 export default function AuthModal({ isOpen, onClose, onVerify }) {
-  const [step, setStep] = useState('phone');   // 'phone' or 'otp'
+  const [step, setStep] = useState('phone'); // 'phone' or 'otp'
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
-  const [code, setCode] = useState('');        // single OTP field
+  const [code, setCode] = useState(''); // single OTP field
   const [loading, setLoading] = useState(false);
 
-  const handlePhoneChange = e => {
+  const handlePhoneChange = (e) => {
     setPhone(e.target.value.replace(/\D/g, '').slice(0, 10));
   };
   const isPhoneValid = phone.length === 10;
@@ -56,10 +56,13 @@ export default function AuthModal({ isOpen, onClose, onVerify }) {
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-white w-96 rounded-2xl p-8 relative shadow-2xl flex flex-col"
+        className="bg-white w-96 rounded-xl p-8 relative shadow-2xl flex flex-col"
       >
         {/* Close */}
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-800">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-800"
+        >
           ✕
         </button>
 
@@ -96,9 +99,9 @@ export default function AuthModal({ isOpen, onClose, onVerify }) {
             <input
               type="text"
               value={name}
-              onChange={e => setName(e.target.value)}
+              onChange={(e) => setName(e.target.value)}
               placeholder="Your Name (optional)"
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 mb-6 focus:outline-none focus:ring-2 focus:ring-[#e80808] transition"
+              className="w-full border border-gray-300 rounded-xl px-4 py-2 mb-6 focus:outline-none focus:ring-2 focus:ring-[#e80808] transition"
             />
           </>
         )}
@@ -110,20 +113,17 @@ export default function AuthModal({ isOpen, onClose, onVerify }) {
             inputMode="numeric"
             maxLength={6}
             value={code}
-            onChange={e => setCode(e.target.value.replace(/\D/g, ''))}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
             placeholder="Enter OTP"
-            className="w-full border border-gray-300 rounded-lg px-4 py-2 mb-6 text-center text-lg focus:outline-none focus:ring-2 focus:ring-[#e80808] transition"
+            className="w-full border border-gray-300 rounded-xl px-4 py-2 mb-6 text-center text-lg focus:outline-none focus:ring-2 focus:ring-[#e80808] transition"
           />
         )}
 
         {/* Button */}
         <button
           onClick={step === 'phone' ? sendOtp : verifyOtp}
-          disabled={
-            loading ||
-            (step === 'phone' ? !isPhoneValid : code.length < 6)
-          }
-          className={`w-full py-3 rounded-lg text-white font-medium transition
+          disabled={loading || (step === 'phone' ? !isPhoneValid : code.length < 6)}
+          className={`w-full py-3 rounded-xl text-white font-medium transition
             ${loading
               ? 'bg-red-400 cursor-wait'
               : 'bg-[#e80808] hover:bg-[#cc0606] focus:ring-2 focus:ring-offset-1 focus:ring-[#e80808]'}
