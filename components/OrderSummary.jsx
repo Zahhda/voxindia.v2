@@ -1,315 +1,161 @@
-"use client";
-import { useAppContext } from "@/context/AppContext";
-import axios from "axios";
-import React, { useEffect, useState } from "react";
-import toast from "react-hot-toast";
+'use client';
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import axios from 'axios';
+import toast from 'react-hot-toast';
+import Image from 'next/image';
+import { assets } from '@/assets/assets';
 
-const OrderSummary = () => {
-  const {
-    router,
-    getCartCount,
-    getCartAmount,
-    getToken,
-    user,
-    cartItems,
-    setCartItems,
-  } = useAppContext();
+export default function AuthModal({ isOpen, onClose /, onVerify/ }) {
+  const [step, setStep] = useState('phone');
+  const [phone, setPhone] = useState('');
+  const [name, setName] = useState('');
+  const [code, setCode] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const [selectedAddress, setSelectedAddress] = useState(null);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [userAddresses, setUserAddresses] = useState([]);
-  const [paymentMethod, setPaymentMethod] = useState("razorpay");
+  const handlePhoneChange = (e) => {
+    // Limit input to 10 digits and prevent overflow
+    const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+    setPhone(val);
+  };
+  const isPhoneValid = phone.length === 10;
 
-  // Guest info state
-  const [guestInfo, setGuestInfo] = useState({
-    fullName: "",
-    email: "",
-    phone: "",
-    address: "",
-  });
-
-  const fetchUserAddresses = async () => {
+  const sendOtp = async () => {
+    setLoading(true);
     try {
-      const token = await getToken();
-      const { data } = await axios.get("/api/user/get-address", {
-        headers: { Authorization: Bearer ${token} },
-      });
-      if (data.success) {
-        setUserAddresses(data.addresses);
-        if (data.addresses.length > 0) {
-          setSelectedAddress(data.addresses[0]);
-        }
-      } else {
-        toast.error(data.message);
-      }
-    } catch (error) {
-      toast.error(error.message);
+      await axios.post('/api/auth/send-otp', { phone: '+91' + phone });
+      toast.success('OTP sent!');
+      setStep('otp');
+    } catch {
+      toast.error('Failed to send OTP');
     }
+    setLoading(false);
   };
 
-  useEffect(() => {
-    if (user) {
-      fetchUserAddresses();
+  const verifyOtp = async () => {
+    if (sessionStorage.getItem('otp_verified') === 'true') {
+      toast.success('User already verified!');
+      return;
     }
-  }, [user]);
 
-  const loadRazorpayScript = () => {
-    return new Promise((resolve) => {
-      const script = document.createElement("script");
-      script.src = "https://checkout.razorpay.com/v1/checkout.js";
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
-  };
-
-  const createOrder = async () => {
+    if (code.length < 6) return toast.error('Enter 6‑digit code');
+    setLoading(true);
     try {
-      // For logged-in users: require address selection
-      if (user && !selectedAddress) return toast.error("Please select an address");
-
-      // For guests: validate guest info
-      if (!user) {
-        if (!guestInfo.fullName || !guestInfo.email || !guestInfo.phone || !guestInfo.address) {
-          return toast.error("Please fill all guest information fields");
-        }
-      }
-
-      let cartItemsArray = Object.keys(cartItems).map((key) => ({
-        product: key,
-        quantity: cartItems[key],
-      }));
-      cartItemsArray = cartItemsArray.filter((item) => item.quantity > 0);
-      if (cartItemsArray.length === 0) return toast.error("Cart is empty");
-
-      const token = user ? await getToken() : null;
-      const totalAmount = getCartAmount() + Math.floor(getCartAmount() * 0.02);
-
-      if (paymentMethod === "cod") {
-        // COD flow for logged-in or guest
-        const { data } = await axios.post(
-          "/api/order/create",
-          {
-            address: user ? selectedAddress._id : guestInfo.address,
-            items: cartItemsArray,
-            payment_mode: "COD",
-            guestInfo: user ? null : guestInfo,
-          },
-          user ? { headers: { Authorization: Bearer ${token} } } : {}
-        );
-
-        if (data.success) {
-          toast.success(data.message);
-          setCartItems({});
-          localStorage.removeItem("guest_cart");
-          router.push("/order-placed");
-        } else {
-          toast.error(data.message);
-        }
-        return;
-      }
-
-      // Razorpay Online Payment
-      const razorpayOrder = await axios.post("/api/razorpay/order", {
-        amount: totalAmount,
+      await axios.post('/api/auth/verify-otp', {
+        phone: '+91' + phone,
+        otp: code,
       });
-
-      if (!razorpayOrder.data.success) {
-        return toast.error("Failed to create payment order");
-      }
-
-      const loaded = await loadRazorpayScript();
-      if (!loaded) return toast.error("Failed to load Razorpay script");
-
-      const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: razorpayOrder.data.order.amount,
-        currency: "INR",
-        name: "Voxindia",
-        description: "Order Payment",
-        order_id: razorpayOrder.data.order.id,
-        handler: async function (response) {
-          const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = response;
-
-          const confirm = await axios.post(
-            "/api/order/create",
-            {
-              address: user ? selectedAddress._id : guestInfo.address,
-              items: cartItemsArray,
-              payment_id: razorpay_payment_id,
-              razorpay_order_id,
-              signature: razorpay_signature,
-              guestInfo: user ? null : guestInfo,
-            },
-            user ? { headers: { Authorization: Bearer ${token} } } : {}
-          );
-
-          if (confirm.data.success) {
-            toast.success(confirm.data.message);
-            setCartItems({});
-            localStorage.removeItem("guest_cart");
-            router.push("/order-placed");
-          } else {
-            toast.error("Payment verified but order failed");
-          }
-        },
-        theme: { color: "#f40000" },
-        prefill: {
-          name: user?.fullName || guestInfo.fullName,
-          email: user?.email || guestInfo.email,
-        },
-      };
-
-      const razorpayObject = new window.Razorpay(options);
-      razorpayObject.open();
-    } catch (error) {
-      toast.error(error.message);
+      toast.success('Verified!');
+      sessionStorage.setItem('otp_verified', 'true');
+      // onVerify(); // Clerk logic commented
+      // setTimeout(onClose, 500);
+    } catch {
+      toast.error('Invalid OTP');
     }
+    setLoading(false);
   };
 
-  // Helper to format INR currency
-  const formatINR = (amount) =>
-    new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(amount);
+  if (!isOpen) return null;
 
   return (
-    <div className="w-full md:w-96 bg-gray-500/5 p-5">
-      <h2 className="text-xl md:text-2xl font-medium text-gray-700">Order Summary</h2>
-      <hr className="border-gray-500/30 my-5" />
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.7)',
+        backdropFilter: 'blur(4px)',
+        zIndex: 99999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1rem',
+      }}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-white w-96 rounded-xl p-8 relative shadow-2xl flex flex-col"
+      >
+        {/* Close */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-800"
+        >
+          ✕
+        </button>
 
-      <div className="space-y-6">
-        {/* Address Dropdown for logged-in users */}
-        {user && (
-          <div>
-            <label className="text-base font-medium uppercase text-gray-600 block mb-2">
-              Select Address
-            </label>
-            <div className="relative inline-block w-full text-sm border">
-              <button
-                className="peer w-full text-left px-4 pr-2 py-2 bg-white text-gray-700 focus:outline-none"
-                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              >
-                <span>
-                  {selectedAddress
-                    ? ${selectedAddress.fullName}, ${selectedAddress.area}, ${selectedAddress.city}, ${selectedAddress.state}
-                    : "Select Address"}
-                </span>
-                <svg
-                  className={`w-5 h-5 inline float-right transition-transform duration-200 ${
-                    isDropdownOpen ? "rotate-0" : "-rotate-90"
-                  }`}
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="#6B7280"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
+        {/* Logo */}
+        <div className="mb-6 flex justify-center">
+          <Image src={assets.logo} alt="Logo" width={64} height={64} />
+        </div>
 
-              {isDropdownOpen && (
-                <ul className="absolute w-full bg-white border shadow-md mt-1 z-10 py-1.5">
-                  {userAddresses.map((address, index) => (
-                    <li
-                      key={index}
-                      className="px-4 py-2 hover:bg-gray-500/10 cursor-pointer"
-                      onClick={() => {
-                        setSelectedAddress(address);
-                        setIsDropdownOpen(false);
-                      }}
-                    >
-                      {address.fullName}, {address.area}, {address.city}, {address.state}
-                    </li>
-                  ))}
-                  <li
-                    onClick={() => router.push("/add-address")}
-                    className="px-4 py-2 hover:bg-gray-500/10 cursor-pointer text-center"
-                  >
-                    + Add New Address
-                  </li>
-                </ul>
-              )}
+        {/* Title */}
+        <h2 className="text-center text-xl font-semibold text-gray-900 mb-1">
+          {step === 'phone' ? 'Enter Phone Number' : 'Enter OTP'}
+        </h2>
+        <p className="text-center text-sm text-gray-500 mb-6">
+          {step === 'phone'
+            ? "We'll send a code to your number"
+            : 'Type the 6‑digit code we sent you'}
+        </p>
+
+        {/* PHONE & NAME STEP */}
+        {step === 'phone' && (
+          <>
+            <div className="flex mb-4" style={{ boxSizing: 'border-box', maxWidth: '100%' }}>
+              <div className="bg-gray-100 border-t border-b border-l border-gray-300 px-4 py-2 rounded-l-lg text-gray-700 flex-shrink-0">
+                +91
+              </div>
+              <input
+                type="tel"
+                value={phone}
+                onChange={handlePhoneChange}
+                placeholder="1234567890"
+                className="border border-gray-300 rounded-r-lg flex-grow px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#e80808] transition min-w-0"
+                style={{ boxSizing: 'border-box' }}
+              />
             </div>
-          </div>
-        )}
-
-        {/* Guest info form for guests */}
-        {!user && (
-          <div className="space-y-4">
-            <label className="text-base font-medium uppercase text-gray-600 block mb-2">
-              Guest Details
-            </label>
             <input
               type="text"
-              placeholder="Full Name"
-              className="w-full p-2 border"
-              value={guestInfo.fullName}
-              onChange={(e) => setGuestInfo({ ...guestInfo, fullName: e.target.value })}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Your Name (optional)"
+              className="w-full border border-gray-300 rounded-xl px-4 py-2 mb-6 focus:outline-none focus:ring-2 focus:ring-[#e80808] transition"
             />
-            <input
-              type="email"
-              placeholder="Email"
-              className="w-full p-2 border"
-              value={guestInfo.email}
-              onChange={(e) => setGuestInfo({ ...guestInfo, email: e.target.value })}
-            />
-            <input
-              type="tel"
-              placeholder="Phone"
-              className="w-full p-2 border"
-              value={guestInfo.phone}
-              onChange={(e) => setGuestInfo({ ...guestInfo, phone: e.target.value })}
-            />
-            <textarea
-              placeholder="Address"
-              className="w-full p-2 border"
-              value={guestInfo.address}
-              onChange={(e) => setGuestInfo({ ...guestInfo, address: e.target.value })}
-            />
-          </div>
+          </>
         )}
 
-        {/* Payment Method */}
-        <div>
-          <label className="text-base font-medium uppercase text-gray-600 block mb-2">
-            Payment Method
-          </label>
-          <select
-            className="w-full border p-2.5 text-gray-700"
-            value={paymentMethod}
-            onChange={(e) => setPaymentMethod(e.target.value)}
-          >
-            <option value="razorpay">Pay Online (Razorpay)</option>
-            <option value="cod">Cash on Delivery</option>
-          </select>
-        </div>
+        {/* OTP STEP */}
+        {step === 'otp' && (
+          <input
+            type="text"
+            inputMode="numeric"
+            maxLength={6}
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+            placeholder="Enter OTP"
+            className="w-full border border-gray-300 rounded-xl px-4 py-2 mb-6 text-center text-lg focus:outline-none focus:ring-2 focus:ring-[#e80808] transition"
+          />
+        )}
 
-        {/* Price Summary */}
-        <hr className="border-gray-500/30 my-5" />
-        <div className="space-y-4">
-          <div className="flex justify-between text-base font-medium">
-            <p className="uppercase text-gray-600">Items {getCartCount()}</p>
-            <p className="text-gray-800">{formatINR(getCartAmount())}</p>
-          </div>
-          <div className="flex justify-between">
-            <p className="text-gray-600">Shipping Fee</p>
-            <p className="font-medium text-gray-800">Free</p>
-          </div>
-          <div className="flex justify-between text-lg md:text-xl font-medium border-t pt-3">
-            <p>Total</p>
-            <p>{formatINR(getCartAmount() + Math.floor(getCartAmount() * 0.02))}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Place Order Button */}
-      <button
-        onClick={createOrder}
-        className="w-full bg-red-700 text-white py-3 mt-5 hover:bg-red-800 transition"
-      >
-        Place Order
-      </button>
+        {/* Button */}
+        <button
+          onClick={step === 'phone' ? sendOtp : verifyOtp}
+          disabled={loading || (step === 'phone' ? !isPhoneValid : code.length < 6)}
+          className={`w-full py-3 rounded-xl text-white font-medium transition
+            ${loading
+              ? 'bg-red-400 cursor-wait'
+              : 'bg-[#e80808] hover:bg-[#cc0606] focus:ring-2 focus:ring-offset-1 focus:ring-[#e80808]'}`}
+        >
+          {loading
+            ? step === 'phone'
+              ? 'Sending...'
+              : 'Verifying...'
+            : step === 'phone'
+            ? 'Send Code'
+            : 'Verify OTP'}
+        </button>
+      </motion.div>
     </div>
   );
-};
-
-export default OrderSummary;
+}
