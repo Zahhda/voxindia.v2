@@ -8,10 +8,10 @@ import Image from 'next/image';
 import { assets } from '@/assets/assets';
 
 export default function AuthModal({ isOpen, onClose, onVerify }) {
-  const [step, setStep] = useState('phone'); // 'phone' or 'otp'
+  const [step, setStep] = useState('phone');
   const [phone, setPhone] = useState('');
   const [name, setName] = useState('');
-  const [code, setCode] = useState(''); // single OTP field
+  const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handlePhoneChange = (e) => {
@@ -41,8 +41,8 @@ export default function AuthModal({ isOpen, onClose, onVerify }) {
       });
       toast.success('Verified!');
       sessionStorage.setItem('otp_verified', 'true');
-      onVerify();
-      setTimeout(onClose, 500);
+      // onVerify();
+      // setTimeout(onClose, 500);
     } catch {
       toast.error('Invalid OTP');
     }
@@ -52,7 +52,19 @@ export default function AuthModal({ isOpen, onClose, onVerify }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.7)',
+        backdropFilter: 'blur(4px)',
+        zIndex: 99999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1rem',
+      }}
+    >
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
