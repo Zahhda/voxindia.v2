@@ -20,11 +20,19 @@ const OrderSummary = () => {
   const [userAddresses, setUserAddresses] = useState([]);
   const [paymentMethod, setPaymentMethod] = useState("razorpay");
 
+  // Guest info state
+  const [guestInfo, setGuestInfo] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    address: "",
+  });
+
   const fetchUserAddresses = async () => {
     try {
       const token = await getToken();
       const { data } = await axios.get("/api/user/get-address", {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: Bearer ${token} },
       });
       if (data.success) {
         setUserAddresses(data.addresses);
@@ -39,6 +47,12 @@ const OrderSummary = () => {
     }
   };
 
+  useEffect(() => {
+    if (user) {
+      fetchUserAddresses();
+    }
+  }, [user]);
+
   const loadRazorpayScript = () => {
     return new Promise((resolve) => {
       const script = document.createElement("script");
@@ -51,8 +65,15 @@ const OrderSummary = () => {
 
   const createOrder = async () => {
     try {
-      if (!user) return toast("Please login to place order", { icon: "⚠️" });
-      if (!selectedAddress) return toast.error("Please select an address");
+      // For logged-in users: require address selection
+      if (user && !selectedAddress) return toast.error("Please select an address");
+
+      // For guests: validate guest info
+      if (!user) {
+        if (!guestInfo.fullName || !guestInfo.email || !guestInfo.phone || !guestInfo.address) {
+          return toast.error("Please fill all guest information fields");
+        }
+      }
 
       let cartItemsArray = Object.keys(cartItems).map((key) => ({
         product: key,
@@ -61,24 +82,26 @@ const OrderSummary = () => {
       cartItemsArray = cartItemsArray.filter((item) => item.quantity > 0);
       if (cartItemsArray.length === 0) return toast.error("Cart is empty");
 
-      const token = await getToken();
+      const token = user ? await getToken() : null;
       const totalAmount = getCartAmount() + Math.floor(getCartAmount() * 0.02);
 
       if (paymentMethod === "cod") {
-        // 🧾 COD Flow
+        // COD flow for logged-in or guest
         const { data } = await axios.post(
           "/api/order/create",
           {
-            address: selectedAddress._id,
+            address: user ? selectedAddress._id : guestInfo.address,
             items: cartItemsArray,
             payment_mode: "COD",
+            guestInfo: user ? null : guestInfo,
           },
-          { headers: { Authorization: `Bearer ${token}` } }
+          user ? { headers: { Authorization: Bearer ${token} } } : {}
         );
 
         if (data.success) {
           toast.success(data.message);
           setCartItems({});
+          localStorage.removeItem("guest_cart");
           router.push("/order-placed");
         } else {
           toast.error(data.message);
@@ -86,7 +109,7 @@ const OrderSummary = () => {
         return;
       }
 
-      // 💳 Razorpay Online Payment
+      // Razorpay Online Payment
       const razorpayOrder = await axios.post("/api/razorpay/order", {
         amount: totalAmount,
       });
@@ -111,20 +134,20 @@ const OrderSummary = () => {
           const confirm = await axios.post(
             "/api/order/create",
             {
-              address: selectedAddress._id,
+              address: user ? selectedAddress._id : guestInfo.address,
               items: cartItemsArray,
               payment_id: razorpay_payment_id,
               razorpay_order_id,
               signature: razorpay_signature,
+              guestInfo: user ? null : guestInfo,
             },
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
+            user ? { headers: { Authorization: Bearer ${token} } } : {}
           );
 
           if (confirm.data.success) {
             toast.success(confirm.data.message);
             setCartItems({});
+            localStorage.removeItem("guest_cart");
             router.push("/order-placed");
           } else {
             toast.error("Payment verified but order failed");
@@ -132,8 +155,8 @@ const OrderSummary = () => {
         },
         theme: { color: "#f40000" },
         prefill: {
-          name: user?.fullName || "Customer",
-          email: user?.email,
+          name: user?.fullName || guestInfo.fullName,
+          email: user?.email || guestInfo.email,
         },
       };
 
@@ -143,12 +166,6 @@ const OrderSummary = () => {
       toast.error(error.message);
     }
   };
-
-  useEffect(() => {
-    if (user) {
-      fetchUserAddresses();
-    }
-  }, [user]);
 
   // Helper to format INR currency
   const formatINR = (amount) =>
@@ -160,55 +177,96 @@ const OrderSummary = () => {
       <hr className="border-gray-500/30 my-5" />
 
       <div className="space-y-6">
-        {/* Address Dropdown */}
-        <div>
-          <label className="text-base font-medium uppercase text-gray-600 block mb-2">
-            Select Address
-          </label>
-          <div className="relative inline-block w-full text-sm border">
-            <button
-              className="peer w-full text-left px-4 pr-2 py-2 bg-white text-gray-700 focus:outline-none"
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            >
-              <span>
-                {selectedAddress
-                  ? `${selectedAddress.fullName}, ${selectedAddress.area}, ${selectedAddress.city}, ${selectedAddress.state}`
-                  : "Select Address"}
-              </span>
-              <svg
-                className={`w-5 h-5 inline float-right transition-transform duration-200 ${
-                  isDropdownOpen ? "rotate-0" : "-rotate-90"
-                }`}
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="#6B7280"
+        {/* Address Dropdown for logged-in users */}
+        {user && (
+          <div>
+            <label className="text-base font-medium uppercase text-gray-600 block mb-2">
+              Select Address
+            </label>
+            <div className="relative inline-block w-full text-sm border">
+              <button
+                className="peer w-full text-left px-4 pr-2 py-2 bg-white text-gray-700 focus:outline-none"
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-
-            {isDropdownOpen && (
-              <ul className="absolute w-full bg-white border shadow-md mt-1 z-10 py-1.5">
-                {userAddresses.map((address, index) => (
-                  <li
-                    key={index}
-                    className="px-4 py-2 hover:bg-gray-500/10 cursor-pointer"
-                    onClick={() => setSelectedAddress(address)}
-                  >
-                    {address.fullName}, {address.area}, {address.city}, {address.state}
-                  </li>
-                ))}
-                <li
-                  onClick={() => router.push("/add-address")}
-                  className="px-4 py-2 hover:bg-gray-500/10 cursor-pointer text-center"
+                <span>
+                  {selectedAddress
+                    ? ${selectedAddress.fullName}, ${selectedAddress.area}, ${selectedAddress.city}, ${selectedAddress.state}
+                    : "Select Address"}
+                </span>
+                <svg
+                  className={`w-5 h-5 inline float-right transition-transform duration-200 ${
+                    isDropdownOpen ? "rotate-0" : "-rotate-90"
+                  }`}
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="#6B7280"
                 >
-                  + Add New Address
-                </li>
-              </ul>
-            )}
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {isDropdownOpen && (
+                <ul className="absolute w-full bg-white border shadow-md mt-1 z-10 py-1.5">
+                  {userAddresses.map((address, index) => (
+                    <li
+                      key={index}
+                      className="px-4 py-2 hover:bg-gray-500/10 cursor-pointer"
+                      onClick={() => {
+                        setSelectedAddress(address);
+                        setIsDropdownOpen(false);
+                      }}
+                    >
+                      {address.fullName}, {address.area}, {address.city}, {address.state}
+                    </li>
+                  ))}
+                  <li
+                    onClick={() => router.push("/add-address")}
+                    className="px-4 py-2 hover:bg-gray-500/10 cursor-pointer text-center"
+                  >
+                    + Add New Address
+                  </li>
+                </ul>
+              )}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Guest info form for guests */}
+        {!user && (
+          <div className="space-y-4">
+            <label className="text-base font-medium uppercase text-gray-600 block mb-2">
+              Guest Details
+            </label>
+            <input
+              type="text"
+              placeholder="Full Name"
+              className="w-full p-2 border"
+              value={guestInfo.fullName}
+              onChange={(e) => setGuestInfo({ ...guestInfo, fullName: e.target.value })}
+            />
+            <input
+              type="email"
+              placeholder="Email"
+              className="w-full p-2 border"
+              value={guestInfo.email}
+              onChange={(e) => setGuestInfo({ ...guestInfo, email: e.target.value })}
+            />
+            <input
+              type="tel"
+              placeholder="Phone"
+              className="w-full p-2 border"
+              value={guestInfo.phone}
+              onChange={(e) => setGuestInfo({ ...guestInfo, phone: e.target.value })}
+            />
+            <textarea
+              placeholder="Address"
+              className="w-full p-2 border"
+              value={guestInfo.address}
+              onChange={(e) => setGuestInfo({ ...guestInfo, address: e.target.value })}
+            />
+          </div>
+        )}
 
         {/* Payment Method */}
         <div>
@@ -225,22 +283,8 @@ const OrderSummary = () => {
           </select>
         </div>
 
-        {/* Promo Code (Optional UI Only) */}
-        <div>
-          <label className="text-base font-medium uppercase text-gray-600 block mb-2">Promo Code</label>
-          <div className="flex flex-col items-start gap-3">
-            <input
-              type="text"
-              placeholder="Enter promo code"
-              className="flex-grow w-full outline-none p-2.5 text-gray-600 border"
-            />
-            <button className="bg-red-700 text-white px-9 py-2 hover:bg-red-700">Apply</button>
-          </div>
-        </div>
-
-        <hr className="border-gray-500/30 my-5" />
-
         {/* Price Summary */}
+        <hr className="border-gray-500/30 my-5" />
         <div className="space-y-4">
           <div className="flex justify-between text-base font-medium">
             <p className="uppercase text-gray-600">Items {getCartCount()}</p>
@@ -249,11 +293,6 @@ const OrderSummary = () => {
           <div className="flex justify-between">
             <p className="text-gray-600">Shipping Fee</p>
             <p className="font-medium text-gray-800">Free</p>
-          </div>
-          <div className="flex justify-between">
-            {/* Uncomment and use if needed */}
-            {/* <p className="text-gray-600">Tax (2%)</p> */}
-            {/* <p className="font-medium text-gray-800">{formatINR(Math.floor(getCartAmount() * 0.02))}</p> */}
           </div>
           <div className="flex justify-between text-lg md:text-xl font-medium border-t pt-3">
             <p>Total</p>
@@ -265,7 +304,7 @@ const OrderSummary = () => {
       {/* Place Order Button */}
       <button
         onClick={createOrder}
-        className="w-full bg-red-700 text-white py-3 mt-5 hover:bg-red-700"
+        className="w-full bg-red-700 text-white py-3 mt-5 hover:bg-red-800 transition"
       >
         Place Order
       </button>

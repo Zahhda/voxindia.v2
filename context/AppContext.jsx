@@ -1,177 +1,161 @@
-'use client'
-import { useAuth, useUser } from "@clerk/nextjs";
-import axios from "axios";
-import { useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, useState } from "react";
-import toast from "react-hot-toast";
+'use client';
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import axios from 'axios';
+import toast from 'react-hot-toast';
+import Image from 'next/image';
+import { assets } from '@/assets/assets';
 
-export const AppContext = createContext();
+export default function AuthModal({ isOpen, onClose /, onVerify/ }) {
+  const [step, setStep] = useState('phone');
+  const [phone, setPhone] = useState('');
+  const [name, setName] = useState('');
+  const [code, setCode] = useState('');
+  const [loading, setLoading] = useState(false);
 
-export const useAppContext = () => useContext(AppContext);
+  const handlePhoneChange = (e) => {
+    // Limit input to 10 digits and prevent overflow
+    const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+    setPhone(val);
+  };
+  const isPhoneValid = phone.length === 10;
 
-export const AppContextProvider = (props) => {
-  const currency = process.env.NEXT_PUBLIC_CURRENCY;
-  const router = useRouter();
-
-  const { user } = useUser();
-  const { getToken } = useAuth();
-
-  const [products, setProducts] = useState([]);
-  const [userData, setUserData] = useState(false);
-  const [isSeller, setIsSeller] = useState(false);
-  const [cartItems, setCartItems] = useState({}); 
-  // cartItems format: { "productId|variantId|colorName": quantity }
-
-  const fetchProductData = async () => {
+  const sendOtp = async () => {
+    setLoading(true);
     try {
-      const { data } = await axios.get('/api/product/list');
-      if (data.success) {
-        setProducts(data.products);
-      } else {
-        toast.error(data.message);
-      }
-    } catch (error) {
-      toast.error(error.message);
+      await axios.post('/api/auth/send-otp', { phone: '+91' + phone });
+      toast.success('OTP sent!');
+      setStep('otp');
+    } catch {
+      toast.error('Failed to send OTP');
     }
+    setLoading(false);
   };
 
-  const fetchUserData = async () => {
+  const verifyOtp = async () => {
+    if (sessionStorage.getItem('otp_verified') === 'true') {
+      toast.success('User already verified!');
+      return;
+    }
+
+    if (code.length < 6) return toast.error('Enter 6‑digit code');
+    setLoading(true);
     try {
-      if (user.publicMetadata.role === 'seller') setIsSeller(true);
-
-      const token = await getToken();
-      const { data } = await axios.get('/api/user/data', { headers: { Authorization: `Bearer ${token}` } });
-
-      if (data.success) {
-        setUserData(data.user);
-        setCartItems(data.user.cartItems || {});
-      } else {
-        toast.error(data.message);
-      }
-    } catch (error) {
-      toast.error(error.message);
+      await axios.post('/api/auth/verify-otp', {
+        phone: '+91' + phone,
+        otp: code,
+      });
+      toast.success('Verified!');
+      sessionStorage.setItem('otp_verified', 'true');
+      // onVerify(); // Clerk logic commented
+      // setTimeout(onClose, 500);
+    } catch {
+      toast.error('Invalid OTP');
     }
+    setLoading(false);
   };
 
-  // Helper: create composite key for cart items
-  const makeCartKey = (productId, variantId, colorName) => {
-    return [productId, variantId, colorName].filter(Boolean).join('|');
-  };
+  if (!isOpen) return null;
 
-  const addToCart = async (productId, quantity = 1, variantId = null, colorName = null) => {
-    if (!user) return toast('Please login', { icon: '⚠️' });
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.7)',
+        backdropFilter: 'blur(4px)',
+        zIndex: 99999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '1rem',
+      }}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-white w-96 rounded-xl p-8 relative shadow-2xl flex flex-col"
+      >
+        {/* Close */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-800"
+        >
+          ✕
+        </button>
 
-    let cartData = structuredClone(cartItems);
-    const key = makeCartKey(productId, variantId, colorName);
+        {/* Logo */}
+        <div className="mb-6 flex justify-center">
+          <Image src={assets.logo} alt="Logo" width={64} height={64} />
+        </div>
 
-    if (cartData[key]) {
-      cartData[key] += quantity;
-    } else {
-      cartData[key] = quantity;
-    }
+        {/* Title */}
+        <h2 className="text-center text-xl font-semibold text-gray-900 mb-1">
+          {step === 'phone' ? 'Enter Phone Number' : 'Enter OTP'}
+        </h2>
+        <p className="text-center text-sm text-gray-500 mb-6">
+          {step === 'phone'
+            ? "We'll send a code to your number"
+            : 'Type the 6‑digit code we sent you'}
+        </p>
 
-    setCartItems(cartData);
+        {/* PHONE & NAME STEP */}
+        {step === 'phone' && (
+          <>
+            <div className="flex mb-4" style={{ boxSizing: 'border-box', maxWidth: '100%' }}>
+              <div className="bg-gray-100 border-t border-b border-l border-gray-300 px-4 py-2 rounded-l-lg text-gray-700 flex-shrink-0">
+                +91
+              </div>
+              <input
+                type="tel"
+                value={phone}
+                onChange={handlePhoneChange}
+                placeholder="1234567890"
+                className="border border-gray-300 rounded-r-lg flex-grow px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#e80808] transition min-w-0"
+                style={{ boxSizing: 'border-box' }}
+              />
+            </div>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Your Name (optional)"
+              className="w-full border border-gray-300 rounded-xl px-4 py-2 mb-6 focus:outline-none focus:ring-2 focus:ring-[#e80808] transition"
+            />
+          </>
+        )}
 
-    if (user) {
-      try {
-        const token = await getToken();
-        await axios.post('/api/cart/update', { cartData }, { headers: { Authorization: `Bearer ${token}` } });
-        toast.success('Item added to cart');
-      } catch (error) {
-        toast.error(error.message);
-      }
-    }
-  };
+        {/* OTP STEP */}
+        {step === 'otp' && (
+          <input
+            type="text"
+            inputMode="numeric"
+            maxLength={6}
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+            placeholder="Enter OTP"
+            className="w-full border border-gray-300 rounded-xl px-4 py-2 mb-6 text-center text-lg focus:outline-none focus:ring-2 focus:ring-[#e80808] transition"
+          />
+        )}
 
-  const updateCartItemQuantity = async (key, quantity) => {
-    let cartData = structuredClone(cartItems);
-    if (quantity <= 0) {
-      delete cartData[key];
-    } else {
-      cartData[key] = quantity;
-    }
-    setCartItems(cartData);
-
-    if (user) {
-      try {
-        const token = await getToken();
-        await axios.post('/api/cart/update', { cartData }, { headers: { Authorization: `Bearer ${token}` } });
-        toast.success('Cart updated');
-      } catch (error) {
-        toast.error(error.message);
-      }
-    }
-  };
-
-  const removeFromCart = async (key) => {
-    let cartData = structuredClone(cartItems);
-    if (cartData[key]) {
-      delete cartData[key];
-      setCartItems(cartData);
-      if (user) {
-        try {
-          const token = await getToken();
-          await axios.post('/api/cart/update', { cartData }, { headers: { Authorization: `Bearer ${token}` } });
-          toast.success('Item removed from cart');
-        } catch (error) {
-          toast.error(error.message);
-        }
-      }
-    }
-  };
-
-  const getCartCount = () => {
-    let totalCount = 0;
-    for (const key in cartItems) {
-      if (cartItems[key] > 0) totalCount += cartItems[key];
-    }
-    return totalCount;
-  };
-
-  const getCartAmount = () => {
-    let totalAmount = 0;
-    for (const key in cartItems) {
-      const [productId, variantId, colorName] = key.split('|');
-      const product = products.find(p => p._id === productId);
-      if (!product) continue;
-
-      const variant = product.variants?.find(v => v._id === variantId) || product.variants?.[0];
-      const color = variant?.colors?.find(c => c.name === colorName) || variant?.colors?.[0];
-
-      const price = color?.price ?? product?.offerPrice ?? product?.price ?? 0;
-
-      totalAmount += price * cartItems[key];
-    }
-    return Math.floor(totalAmount * 100) / 100;
-  };
-
-  useEffect(() => {
-    fetchProductData();
-  }, []);
-
-  useEffect(() => {
-    if (user) fetchUserData();
-  }, [user]);
-
-  const value = {
-    user,
-    getToken,
-    currency,
-    router,
-    isSeller,
-    setIsSeller,
-    userData,
-    fetchUserData,
-    products,
-    fetchProductData,
-    cartItems,
-    setCartItems,
-    addToCart,
-    updateCartItemQuantity,
-    removeFromCart,
-    getCartCount,
-    getCartAmount,
-  };
-
-  return <AppContext.Provider value={value}>{props.children}</AppContext.Provider>;
-};
+        {/* Button */}
+        <button
+          onClick={step === 'phone' ? sendOtp : verifyOtp}
+          disabled={loading || (step === 'phone' ? !isPhoneValid : code.length < 6)}
+          className={`w-full py-3 rounded-xl text-white font-medium transition
+            ${loading
+              ? 'bg-red-400 cursor-wait'
+              : 'bg-[#e80808] hover:bg-[#cc0606] focus:ring-2 focus:ring-offset-1 focus:ring-[#e80808]'}`}
+        >
+          {loading
+            ? step === 'phone'
+              ? 'Sending...'
+              : 'Verifying...'
+            : step === 'phone'
+            ? 'Send Code'
+            : 'Verify OTP'}
+        </button>
+      </motion.div>
+    </div>
+  );
+}
