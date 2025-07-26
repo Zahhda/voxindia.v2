@@ -1,21 +1,27 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Image from "next/image";
 import { useAppContext } from "@/context/AppContext";
+import toast from "react-hot-toast";
+
+const colorMap = {
+  White: "#fff",
+  Grey: "#808080",
+  Anthracite: "#293133",
+  Black: "#000",
+  Mocca: "#837060",
+  Natural: "#E1C699",
+  "Natural Black": "#1D1D1B",
+  Chocolate: "#7B3F00",
+};
 
 const CartSidebar = ({ open, onClose, onOpenAuth }) => {
-  const {
-    cartItems,
-    products,
-    getCartAmount,
-    updateCartItemQuantity,
-    removeFromCart,
-  } = useAppContext();
+  const { cartItems, products, getCartAmount, updateCartItemQuantity, removeFromCart } =
+    useAppContext();
 
+  const [otpVerified, setOtpVerified] = useState(false);
   const [userName, setUserName] = useState("");
   const [userPhone, setUserPhone] = useState("");
-  const [otpVerified, setOtpVerified] = useState(false);
 
   useEffect(() => {
     setUserName(sessionStorage.getItem("user_name") || "");
@@ -25,26 +31,16 @@ const CartSidebar = ({ open, onClose, onOpenAuth }) => {
 
   const handleCheckout = () => {
     if (!otpVerified) {
+      toast.error("Please verify your phone before checkout");
       onClose();
-      onOpenAuth(); // Open OTP modal before checkout
+      onOpenAuth();
       return;
     }
     onClose();
     window.location.href = "/checkout";
   };
 
-  const cartArray = Object.entries(cartItems || {});
-
-  const colorMap = {
-    White: "#fff",
-    Grey: "#808080",
-    Anthracite: "#293133",
-    Black: "#000",
-    Mocca: "#837060",
-    Natural: "#E1C699",
-    "Natural Black": "#1D1D1B",
-    Chocolate: "#7B3F00",
-  };
+  const cartArray = Object.entries(cartItems || []);
 
   const renderColorPill = (colorName) => {
     if (!colorName) return null;
@@ -104,8 +100,8 @@ const CartSidebar = ({ open, onClose, onOpenAuth }) => {
             Logged in as: <strong>{userName}</strong> ({userPhone})
           </div>
         ) : (
-          <div className="px-5 py-3 border-b text-red-600 font-semibold">
-            Please verify your phone to proceed.
+          <div className="px-5 py-3 border-b text-red-600 font-semibold flex flex-col gap-2">
+            <span>Please verify your phone to proceed.</span>
           </div>
         )}
 
@@ -118,8 +114,10 @@ const CartSidebar = ({ open, onClose, onOpenAuth }) => {
               const product = products.find((p) => p._id === productId);
               if (!product) return null;
 
-              const variant = product.variants?.find((v) => v._id === variantId) || product.variants?.[0];
-              const color = variant?.colors?.find((c) => c.name === colorName) || variant?.colors?.[0];
+              const variant =
+                product.variants?.find((v) => v._id === variantId) || product.variants?.[0];
+              const color =
+                variant?.colors?.find((c) => c.name === colorName) || variant?.colors?.[0];
               const img = color?.image || product.image?.[0];
               const itemPrice = color?.price ?? product?.offerPrice ?? product?.price ?? 0;
 
@@ -129,13 +127,12 @@ const CartSidebar = ({ open, onClose, onOpenAuth }) => {
                   className="flex gap-4 items-center border rounded-lg p-4 shadow-sm hover:shadow-md transition"
                 >
                   {img && (
-                    <Image
+                    <img
                       src={img}
                       alt={product.name}
                       width={80}
                       height={80}
                       className="rounded-md object-cover flex-shrink-0"
-                      unoptimized
                     />
                   )}
                   <div className="flex-1 flex flex-col gap-1">
