@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
@@ -52,126 +52,126 @@ const WhyChooseUs = () => {
 };
 
 const accordionData = [
-    {
+  {
     id: 1,
     question: "What are VOX Linerio Slat Panels?",
     answer:
-      "VOX Linerio Slat Panels are decorative wall panels designed to enhance interior spaces with depth, warmth, and sophistication. They come in three variants—S-Line, M-Line, and L-Line—each differing in the width and depth of the slats. These panels are made from polystyrene, a lightweight and durable material that is 100% recyclable.",
+      "VOX Linerio Slat Panels are decorative wall panels designed to enhance interior spaces with depth, warmth, and sophistication. They come in three variants—S-Line, M-Line, and L-Line—each differing in the width and depth of the slats. These panels are made from polystyrene, a lightweight and durable material that is 100% recyclable."
   },
   {
     id: 2,
     question: "What are the differences between S-Line, M-Line, and L-Line panels?",
     answer:
-      "S-Line: Features narrow slats, providing a subtle texture suitable for minimalist designs.\nM-Line: Offers medium-width slats, balancing subtlety and prominence.\nL-Line: Comprises wide slats, making a bold statement and adding significant depth to walls.",
+      "S-Line: Features narrow slats, providing a subtle texture suitable for minimalist designs.\nM-Line: Offers medium-width slats, balancing subtlety and prominence.\nL-Line: Comprises wide slats, making a bold statement and adding significant depth to walls."
   },
   {
     id: 3,
     question: "In which colors are Linerio panels available?",
     answer:
-      "Linerio panels are available in various shades, including Natural, Mocca, Chocolate, White, Grey, Black, and Anthracite.",
+      "Linerio panels are available in various shades, including Natural, Mocca, Chocolate, White, Grey, Black, and Anthracite."
   },
   {
     id: 4,
     question: "Can Linerio panels be installed in bathrooms or kitchens?",
     answer:
-      "Yes, Linerio panels can be installed in damp areas like bathrooms and kitchens. However, they should not be exposed to direct contact with water or installed in areas with temperatures exceeding 60°C, such as saunas or near cookers.",
+      "Yes, Linerio panels can be installed in damp areas like bathrooms and kitchens. However, they should not be exposed to direct contact with water or installed in areas with temperatures exceeding 60°C, such as saunas or near cookers."
   },
   {
     id: 5,
     question: "How are Linerio panels installed?",
     answer:
-      "Linerio panels are designed for easy installation. They can be mounted using adhesive and cut to size using a saw or jigsaw. Installation can be done vertically, horizontally, or diagonally. Visit greatstack.voxindia.co for an installation guide or contact VOX technicians at +91 9528500500 for complex designs.",
+      "Linerio panels are designed for easy installation. They can be mounted using adhesive and cut to size using a saw or jigsaw. Installation can be done vertically, horizontally, or diagonally. Visit greatstack.voxindia.co for an installation guide or contact VOX technicians at +91 9528500500 for complex designs."
   },
   {
     id: 6,
     question: "Do Linerio panels improve room acoustics?",
     answer:
-      "Yes, the spatial structure of Linerio panels helps to soundproof interiors by eliminating reverberation and echo, especially in larger rooms.",
+      "Yes, the spatial structure of Linerio panels helps to soundproof interiors by eliminating reverberation and echo, especially in larger rooms."
   },
   {
     id: 7,
     question: "Are Linerio panels environmentally friendly?",
     answer:
-      "Absolutely. Linerio panels are made from polystyrene, which is 100% recyclable. This makes them an eco-friendly choice for interior wall cladding.",
+      "Absolutely. Linerio panels are made from polystyrene, which is 100% recyclable. This makes them an eco-friendly choice for interior wall cladding."
   },
   {
     id: 8,
     question: "What are the dimensions of a single Linerio panel?",
     answer:
-      "Each Linerio panel measures 3050 mm in length. The width and thickness vary by type:\nS-Line: 122 mm wide, 12 mm thick\nM-Line: 122 mm wide, 12 mm thick\nL-Line: 122 mm wide, 21 mm thick",
+      "Each Linerio panel measures 3050 mm in length. The width and thickness vary by type:\nS-Line: 122 mm wide, 12 mm thick\nM-Line: 122 mm wide, 12 mm thick\nL-Line: 122 mm wide, 21 mm thick"
   },
   {
     id: 9,
     question: "Can Linerio panels be used on ceilings?",
     answer:
-      "Yes, Linerio panels are versatile and can be installed on both walls and ceilings, allowing for cohesive interior designs.",
+      "Yes, Linerio panels are versatile and can be installed on both walls and ceilings, allowing for cohesive interior designs."
   },
   {
     id: 10,
     question: "How do I maintain and clean Linerio panels?",
     answer:
-      "Linerio panels are easy to maintain. Use a mild detergent and a soft cloth for cleaning. Avoid strong detergents, bleaching agents, solvents, strong acids/bases, or abrasives.",
+      "Linerio panels are easy to maintain. Use a mild detergent and a soft cloth for cleaning. Avoid strong detergents, bleaching agents, solvents, strong acids/bases, or abrasives."
   },
   {
     id: 11,
     question: "Are VOX Linerio Slat Panels suitable for Indian weather conditions?",
     answer:
-      "Yes, the panels are made from high-quality polystyrene that is resistant to moisture, heat, and humidity—suitable for Indian climates. They can be used in interiors and semi-humid areas like covered balconies.",
+      "Yes, the panels are made from high-quality polystyrene that is resistant to moisture, heat, and humidity—suitable for Indian climates. They can be used in interiors and semi-humid areas like covered balconies."
   },
   {
     id: 12,
     question: "What are the best rooms to install VOX Linerio Panels in a home?",
     answer:
-      "Ideal for living rooms, bedrooms, hallways, offices, and feature walls. Their acoustic benefits suit home theaters and study areas, while moisture resistance makes them suitable for kitchens and covered balconies.",
+      "Ideal for living rooms, bedrooms, hallways, offices, and feature walls. Their acoustic benefits suit home theaters and study areas, while moisture resistance makes them suitable for kitchens and covered balconies."
   },
   {
     id: 13,
     question: "Can I use VOX Linerio Panels for commercial interiors?",
     answer:
-      "Absolutely. They're widely used in cafes, salons, office lobbies, and showrooms due to their modern look, durability, and easy maintenance.",
+      "Absolutely. They're widely used in cafes, salons, office lobbies, and showrooms due to their modern look, durability, and easy maintenance."
   },
   {
     id: 14,
     question: "How do VOX Linerio Panels compare to traditional wooden wall panels?",
     answer:
-      "VOX Linerio Panels are lightweight, moisture-resistant, and low-maintenance. Unlike wood, they don’t warp, crack, or fade, making them better for humid conditions.",
+      "VOX Linerio Panels are lightweight, moisture-resistant, and low-maintenance. Unlike wood, they don’t warp, crack, or fade, making them better for humid conditions."
   },
   {
     id: 15,
     question: "Are VOX Linerio Panels customizable in terms of color or finish?",
     answer:
-      "VOX offers panels in finishes like Natural Oak, Mocca, Chocolate, White, Grey, and Anthracite. While slat sizes (S, M, L) are fixed, you can choose a finish to match your decor.",
+      "VOX offers panels in finishes like Natural Oak, Mocca, Chocolate, White, Grey, and Anthracite. While slat sizes (S, M, L) are fixed, you can choose a finish to match your decor."
   },
   {
     id: 16,
     question: "What is the estimated delivery time for VOX Linerio Slat Panels?",
     answer:
-      "Delivery typically takes 8 to 14 working days from order confirmation. Orders ship after 24 hours, and cancellation is not possible post that.",
+      "Delivery typically takes 8 to 14 working days from order confirmation. Orders ship after 24 hours, and cancellation is not possible post that."
   },
   {
     id: 17,
     question: "What should I do if my VOX Linerio panels arrive damaged?",
     answer:
-      "Contact us at +91 9528500500 within 48 hours of delivery. Email photos of the damage and packaging to customercare@voxindia.co with your order details.",
+      "Contact us at +91 9528500500 within 48 hours of delivery. Email photos of the damage and packaging to customercare@voxindia.co with your order details."
   },
   {
     id: 18,
     question: "Is there a warranty on VOX Linerio Panels?",
     answer:
-      "Yes, there is a 2-year manufacturer’s warranty against defects in material and workmanship.",
+      "Yes, there is a 2-year manufacturer’s warranty against defects in material and workmanship."
   },
   {
     id: 19,
     question: "Are shipping charges included in the product price?",
     answer:
-      "Yes, VOX India offers Free Shipping across India on all orders placed via voxindia.co.",
+      "Yes, VOX India offers Free Shipping across India on all orders placed via voxindia.co."
   },
   {
     id: 20,
     question: "How will Installation of VOX Linerio Panels work after delivery? Are there extra Installation Charges?",
     answer:
-      "VOX India provides Free Installation across India for all orders from voxindia.co. For complex installations, accessories like Linerio Trims (sold separately) may be required. Contact +91 9528500500 post-order for more info.",
-  },
+      "VOX India provides Free Installation across India for all orders from voxindia.co. For complex installations, accessories like Linerio Trims (sold separately) may be required. Contact +91 9528500500 post-order for more info."
+  }
 ];
 
 const Accordion = () => {
@@ -227,6 +227,8 @@ export default function ProductPage() {
   const [buyMode, setBuyMode] = useState("panel");
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
 
+  const thumbnailsRef = useRef(null);
+
   useEffect(() => {
     if (products && products.length) {
       const product = products.find((p) => p._id === id);
@@ -281,6 +283,19 @@ export default function ProductPage() {
     setQuantity(1);
     const colorImage = currentColors[index]?.image;
     setMainImage(colorImage || productData.image?.[0] || "");
+
+    // Smooth scroll thumbnail container horizontally only — no page jump
+    if (thumbnailsRef.current) {
+      const container = thumbnailsRef.current;
+      const buttons = container.children;
+      const button = buttons[index];
+      if (button) {
+        const buttonCenter = button.offsetLeft + button.offsetWidth / 2;
+        const containerCenter = container.clientWidth / 2;
+        const scrollTo = buttonCenter - containerCenter;
+        container.scrollTo({ left: scrollTo, behavior: "smooth" });
+      }
+    }
   };
 
   const decrementQty = () => setQuantity((q) => Math.max(1, q - 1));
@@ -290,6 +305,7 @@ export default function ProductPage() {
 
   const perSqFt = Number(productData.perSqFtPrice);
   const perPanel = Number(productData.perPanelSqFt);
+  const totalPanelSqFt = perPanel * quantity;
 
   return (
     <>
@@ -319,6 +335,7 @@ export default function ProductPage() {
             </div>
 
             <div
+              ref={thumbnailsRef}
               className="flex space-x-4 mt-4 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100"
               style={{ scrollbarWidth: "thin", scrollbarColor: "#9CA3AF #F3F4F6" }}
             >
@@ -352,7 +369,7 @@ export default function ProductPage() {
               Color: {currentColor?.name ?? "N/A"}
             </p>
 
-            {/* Moved Price and Per Sq.ft / Per Panel here */}
+            {/* Price and Discounts */}
             <div className="flex items-center space-x-4 mb-8">
               <span className="text-3xl font-semibold">₹{displayPrice.toFixed(2)}</span>
               <span className="bg-red-600 text-white px-2 py-1 rounded text-sm font-semibold select-none">
@@ -370,6 +387,7 @@ export default function ProductPage() {
               )}
             </div>
 
+            {/* Per sq.ft and per panel */}
             <div className="grid grid-cols-2 gap-4 mb-8">
               <div className="bg-gray-50 p-4 rounded shadow text-center flex flex-col items-center justify-center">
                 <div className="text-xs text-gray-600 mb-1">Per sq.ft</div>
@@ -385,6 +403,7 @@ export default function ProductPage() {
               </div>
             </div>
 
+            {/* Select Mode */}
             <div className="flex items-center space-x-4 mb-4">
               <span className="text-sm font-medium">Select Mode:</span>
               <button
@@ -397,6 +416,7 @@ export default function ProductPage() {
               </button>
             </div>
 
+            {/* Variants */}
             <div className="flex space-x-4 mb-6">
               {variants.map((variant, idx) => (
                 <button
@@ -413,6 +433,7 @@ export default function ProductPage() {
               ))}
             </div>
 
+            {/* Colors */}
             <div className="flex space-x-4 mb-6 items-center">
               <span className="font-semibold mr-4">Color:</span>
               {currentColors.map((color, idx) => (
@@ -430,23 +451,33 @@ export default function ProductPage() {
               ))}
             </div>
 
-            <div className="flex items-center space-x-4 mb-8">
-              <span className="font-semibold">Quantity:</span>
-              <button
-                onClick={decrementQty}
-                className="w-8 h-8 border border-gray-400 rounded text-2xl flex items-center justify-center"
-              >
-                −
-              </button>
-              <span className="text-xl">{quantity}</span>
-              <button
-                onClick={incrementQty}
-                className="w-8 h-8 border border-gray-400 rounded text-2xl flex items-center justify-center"
-              >
-                +
-              </button>
+            {/* Quantity and Per Panel SqFt Box */}
+            <div className="flex items-center space-x-6 mb-8">
+              {/* Quantity controls */}
+              <div className="flex items-center space-x-4">
+                <span className="font-semibold">Quantity:</span>
+                <button
+                  onClick={decrementQty}
+                  className="w-8 h-8 border border-gray-400 rounded text-2xl flex items-center justify-center"
+                >
+                  −
+                </button>
+                <span className="text-xl">{quantity}</span>
+                <button
+                  onClick={incrementQty}
+                  className="w-8 h-8 border border-gray-400 rounded text-2xl flex items-center justify-center"
+                >
+                  +
+                </button>
+              </div>
+
+              {/* Per Panel SqFt × Quantity */}
+              <div className="bg-black text-white px-4 py-2 rounded text-lg font-semibold select-none flex items-center justify-center">
+                {totalPanelSqFt.toFixed(3)} sq.ft
+              </div>
             </div>
 
+            {/* Add to Cart Button */}
             <button
               onClick={() =>
                 addToCart(

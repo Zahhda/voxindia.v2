@@ -1,49 +1,52 @@
-import { getAuth } from "@clerk/nextjs/server";
-import authSeller from "@/lib/authSeller";
 import { NextResponse } from "next/server";
 import connectDB from "@/config/db";
 import Product from "@/models/Product";
 
-export async function POST(request) {
+export async function POST(req) {
   try {
-    const { userId } = getAuth(request);
-    if (!userId) return NextResponse.json({ success: false, message: "Not authorized" });
+    await connectDB();
 
-    const isSeller = await authSeller(userId);
-    if (!isSeller) return NextResponse.json({ success: false, message: "Not authorized" });
-
-    const body = await request.json();
+    const body = await req.json();
 
     const {
       name,
+      slug,
       description,
       category,
       price,
       offerPrice,
       perSqFtPrice,
       perPanelSqFt,
-      imageUrls,      // ✅ List of main image URLs
-      variants        // ✅ Variants already include Cloudinary URLs
+      imageUrls,
+      variants
     } = body;
 
-    await connectDB();
+    // ⚠️ Static or dummy userId just to satisfy schema
+    const userId = "admin"; // Replace with actual admin ID if needed
 
     const newProduct = await Product.create({
       userId,
       name,
+      slug,
       description,
       category,
       price: Number(price),
       offerPrice: Number(offerPrice),
       perSqFtPrice: Number(perSqFtPrice),
       perPanelSqFt: Number(perPanelSqFt),
-      image: imageUrls,    // ✅ No need to upload here
-      variants,            // ✅ Already has image URLs
-      date: Date.now(),
+      image: imageUrls,
+      variants,
     });
 
-    return NextResponse.json({ success: true, message: "Product added successfully", newProduct });
+    return NextResponse.json({
+      success: true,
+      message: "Product added successfully",
+      slug: newProduct.slug,
+    });
   } catch (error) {
-    return NextResponse.json({ success: false, message: error.message || "Failed to add product" });
+    return NextResponse.json(
+      { success: false, message: error.message || "Failed to add product" },
+      { status: 500 }
+    );
   }
 }

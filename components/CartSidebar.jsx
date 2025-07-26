@@ -16,8 +16,13 @@ const colorMap = {
 };
 
 const CartSidebar = ({ open, onClose, onOpenAuth }) => {
-  const { cartItems, products, getCartAmount, updateCartItemQuantity, removeFromCart } =
-    useAppContext();
+  const {
+    cartItems,
+    products,
+    getCartAmount,
+    updateCartItemQuantity,
+    removeFromCart,
+  } = useAppContext();
 
   const [otpVerified, setOtpVerified] = useState(false);
   const [userName, setUserName] = useState("");
@@ -40,7 +45,7 @@ const CartSidebar = ({ open, onClose, onOpenAuth }) => {
     window.location.href = "/checkout";
   };
 
-  const cartArray = Object.entries(cartItems || []);
+  const cartArray = Object.entries(cartItems || {});
 
   const renderColorPill = (colorName) => {
     if (!colorName) return null;
@@ -85,7 +90,9 @@ const CartSidebar = ({ open, onClose, onOpenAuth }) => {
         aria-label="Shopping cart"
       >
         <div className="flex items-center justify-between p-5 border-b flex-shrink-0">
-          <h2 className="text-2xl font-semibold tracking-wide text-gray-900">Your Cart</h2>
+          <h2 className="text-2xl font-semibold tracking-wide text-gray-900">
+            Your Cart
+          </h2>
           <button
             onClick={onClose}
             aria-label="Close cart sidebar"
@@ -109,17 +116,25 @@ const CartSidebar = ({ open, onClose, onOpenAuth }) => {
           {cartArray.length === 0 ? (
             <p className="text-center text-gray-500 mt-10">Your cart is empty</p>
           ) : (
-            cartArray.map(([key, quantity]) => {
+            cartArray.map(([key, item]) => {
+              const quantity = item.quantity || 0;
+
               const [productId, variantId, colorName] = key.split("|");
               const product = products.find((p) => p._id === productId);
               if (!product) return null;
 
               const variant =
-                product.variants?.find((v) => v._id === variantId) || product.variants?.[0];
+                product.variants?.find((v) => v._id === variantId) ||
+                product.variants?.[0];
               const color =
-                variant?.colors?.find((c) => c.name === colorName) || variant?.colors?.[0];
+                variant?.colors?.find((c) => c.name === colorName) ||
+                variant?.colors?.[0];
               const img = color?.image || product.image?.[0];
               const itemPrice = color?.price ?? product?.offerPrice ?? product?.price ?? 0;
+
+              // Calculate total panel sqft dynamically:
+              const perPanelSqFt = Number(product.perPanelSqFt) || 0;
+              const totalPanelSqFt = perPanelSqFt * quantity;
 
               return (
                 <div
@@ -142,9 +157,11 @@ const CartSidebar = ({ open, onClose, onOpenAuth }) => {
                       ₹{(itemPrice * quantity).toFixed(2)}
                     </p>
 
-                    <div className="flex items-center gap-3 mt-3">
+                    <div className="flex items-center gap-3 mt-3 flex-wrap">
                       <button
-                        onClick={() => updateCartItemQuantity(key, Math.max(1, quantity - 1))}
+                        onClick={() =>
+                          updateCartItemQuantity(key, Math.max(1, quantity - 1))
+                        }
                         className="w-8 h-8 rounded border border-gray-300 text-gray-600 font-bold hover:bg-gray-100 transition"
                         aria-label="Decrease quantity"
                       >
@@ -158,6 +175,10 @@ const CartSidebar = ({ open, onClose, onOpenAuth }) => {
                       >
                         +
                       </button>
+
+                      <div className="bg-black text-white px-3 py-1 rounded text-sm font-semibold select-none flex items-center justify-center ml-4 whitespace-nowrap">
+                        {totalPanelSqFt.toFixed(3)} sq.ft
+                      </div>
 
                       <button
                         onClick={() => removeFromCart(key)}

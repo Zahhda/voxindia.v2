@@ -101,24 +101,55 @@ export const AppContextProvider = (props) => {
   const makeCartKey = (productId, variantId, colorName) =>
     [productId, variantId, colorName].filter(Boolean).join("|");
 
-  // Add item to cart (increase quantity if exists)
-  const addToCart = async (productId, quantity = 1, variantId = null, colorName = null) => {
+  // Add item to cart (store object with quantity, perPanelSqFt, totalPanelSqFt)
+  const addToCart = async (
+    productId,
+    quantity = 1,
+    variantId = null,
+    colorName = null,
+    perPanelSqFt = 0
+  ) => {
     let newCart = { ...cartItems };
     const key = makeCartKey(productId, variantId, colorName);
 
-    newCart[key] = (newCart[key] || 0) + quantity;
+    if (newCart[key]) {
+      // Update existing item quantity and totalPanelSqFt
+      const existing = newCart[key];
+      const newQty = existing.quantity + quantity;
+      newCart[key] = {
+        ...existing,
+        quantity: newQty,
+        totalPanelSqFt: perPanelSqFt * newQty,
+        perPanelSqFt,
+      };
+    } else {
+      newCart[key] = {
+        quantity,
+        perPanelSqFt,
+        totalPanelSqFt: perPanelSqFt * quantity,
+      };
+    }
 
     updateCart(newCart);
   };
 
-  // Update quantity or remove if quantity <= 0
+  // Update quantity or remove if quantity <= 0 (update totalPanelSqFt accordingly)
   const updateCartItemQuantity = async (key, quantity) => {
     let newCart = { ...cartItems };
+
+    if (!newCart[key]) return; // item doesn't exist
+
     if (quantity <= 0) {
       delete newCart[key];
     } else {
-      newCart[key] = quantity;
+      const perPanelSqFt = newCart[key].perPanelSqFt || 0;
+      newCart[key] = {
+        ...newCart[key],
+        quantity,
+        totalPanelSqFt: perPanelSqFt * quantity,
+      };
     }
+
     updateCart(newCart);
   };
 
@@ -131,9 +162,12 @@ export const AppContextProvider = (props) => {
     }
   };
 
-  // Get total count of all cart items
+  // Get total count of all cart items (sum quantities)
   const getCartCount = () => {
-    return Object.values(cartItems).reduce((total, qty) => total + qty, 0);
+    return Object.values(cartItems).reduce(
+      (total, item) => total + (item.quantity || 0),
+      0
+    );
   };
 
   // Get total price considering variants and colors
@@ -142,7 +176,8 @@ export const AppContextProvider = (props) => {
 
     let total = 0;
     for (const key in cartItems) {
-      const qty = cartItems[key];
+      const item = cartItems[key];
+      const qty = item.quantity || 0;
       if (qty <= 0) continue;
 
       const [productId, variantId, colorName] = key.split("|");
