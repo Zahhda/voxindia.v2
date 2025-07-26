@@ -1,4 +1,3 @@
-// /app/api/auth/verify-otp/route.js
 import { NextResponse } from 'next/server';
 import twilio from 'twilio';
 import connectDB from '@/lib/db';
@@ -26,9 +25,9 @@ export async function POST(req) {
 
     await connectDB();
 
-    const email = phone.replace('+91', '') + '@voxindia.co';
+    const digitsOnly = phone.replace(/^\+/, '');
+    const email = `${digitsOnly}@voxindia.co`;
 
-    // Create or update user using email
     const user = await User.findOneAndUpdate(
       { _id: phone },
       { _id: phone, name: name || '', email },
@@ -43,7 +42,7 @@ export async function POST(req) {
 
     return NextResponse.json({ success: true, user, token });
   } catch (error) {
-    console.error('[Twilio VERIFY OTP Error]', error);
-    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+    console.error('[Twilio VERIFY OTP Error]', error?.message || error);
+    return NextResponse.json({ success: false, message: error?.message || 'OTP verification failed' }, { status: 500 });
   }
 }

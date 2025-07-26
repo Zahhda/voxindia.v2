@@ -5,7 +5,6 @@ const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TO
 const serviceSid = process.env.TWILIO_SERVICE_SID;
 
 export async function POST(req) {
-  console.log('SERVICE SID:', serviceSid); // <--- See what prints here!
   try {
     const { phone } = await req.json();
 
@@ -19,7 +18,7 @@ export async function POST(req) {
 
     return NextResponse.json({ success: true, status: verification.status });
   } catch (error) {
-    console.error('[Twilio SEND OTP Error]', error);
-    return NextResponse.json({ success: false, message: error.message || 'OTP send failed' }, { status: 500 });
+    console.error('[Twilio SEND OTP Error]', error?.message, error?.code);
+    return NextResponse.json({ success: false, message: error?.message || 'OTP send failed' }, { status: 500 });
   }
 }
