@@ -1,212 +1,201 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { assets, BoxIcon, HomeIcon } from '@/assets/assets';
-import { useAppContext } from '@/context/AppContext';
-import { useClerk, useUser, UserButton } from '@clerk/nextjs';
-import { Menu, X, Heart as HeartIcon, ShoppingBag as BagOpenIcon, User as UserIcon } from 'lucide-react';
-import CartSidebar from '@/components/CartSidebar';
+import { User as UserIcon, ShoppingBag, Heart } from 'lucide-react';
 import AuthModal from '@/context/AuthModal';
+import { useAppContext } from '@/context/AppContext';
+import CartSidebar from '@/components/CartSidebar';
+import { assets } from '@/assets/assets';
+import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 
 export default function Navbar() {
-  const { isSeller, router, cartItems } = useAppContext();
-  const { openSignIn } = useClerk();
-  const { user: clerkUser } = useUser();
+  const { cartItems } = useAppContext();
+  const router = useRouter();
 
-  const [isCartOpen, setIsCartOpen] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [isOtpVerified, setIsOtpVerified] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
-  // New pressed states for icons
-  const [pressedWishlist, setPressedWishlist] = useState(false);
-  const [pressedCart, setPressedCart] = useState(false);
-  const [pressedUser, setPressedUser] = useState(false);
-
-  const cartCount = Object.values(cartItems || {}).reduce((a, b) => a + b, 0);
-  const wishlistCount = 0; // placeholder
+  const [userName, setUserName] = useState('Guest');
+  const [userEmail, setUserEmail] = useState('');
 
   useEffect(() => {
-    if (sessionStorage.getItem('otp_verified') === 'true') {
-      setIsOtpVerified(true);
+    if (typeof window !== 'undefined') {
+      const verified = sessionStorage.getItem('otp_verified') === 'true';
+      setIsLoggedIn(verified);
+
+      const name = sessionStorage.getItem('user_name') || 'Guest';
+      const phone = sessionStorage.getItem('user_phone') || '';
+      const emailFromPhone = phone.replace('+91', '') + '@voxindia.co';
+
+      setUserName(name);
+      setUserEmail(sessionStorage.getItem('user_email') || emailFromPhone);
     }
   }, []);
 
-  const handleVerify = () => {
-    sessionStorage.setItem('otp_verified', 'true');
-    setIsOtpVerified(true);
-    setShowAuthModal(false);
-    openSignIn();
+  const handleVerified = () => {
+    setIsLoggedIn(true);
+    toast.success('Logged in successfully');
+
+    if (typeof window !== 'undefined') {
+      const name = sessionStorage.getItem('user_name') || 'Guest';
+      const phone = sessionStorage.getItem('user_phone') || '';
+      const emailFromPhone = phone.replace('+91', '') + '@voxindia.co';
+
+      setUserName(name);
+      setUserEmail(sessionStorage.getItem('user_email') || emailFromPhone);
+    }
   };
 
-  // Helper to handle press styling
-  const handlePress = (setPressed) => {
-    setPressed(true);
-    setTimeout(() => setPressed(false), 200); // remove effect after 200ms
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    }
+    if (showDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showDropdown]);
+
+  const handleLogout = () => {
+    sessionStorage.clear();
+    setIsLoggedIn(false);
+    setShowDropdown(false);
+    toast.success('Logged out');
+    router.push('/');
   };
+
+  const cartCount = Object.values(cartItems || {}).reduce((a, b) => a + b, 0);
 
   return (
     <>
-      <nav className="flex items-center justify-between px-4 md:px-16 py-2 border-b bg-white z-10">
-        {/* Logo (smaller) */}
+      <nav className="flex justify-between items-center px-4 md:px-16 py-2 bg-white border-b relative z-[9999]">
+        {/* Logo */}
         <div className="cursor-pointer" onClick={() => router.push('/')}>
-          <Image src={assets.logo} alt="Logo" width={80} height={24} />
+          <Image src={assets.logo} alt="Logo" width={80} height={28} />
         </div>
 
-        {/* Desktop Links */}
-        <div className="hidden md:flex items-center gap-6">
-          <Link href="/" className="hover:text-gray-900 font-medium">Linerio</Link>
-          <Link href="/contact" className="hover:text-gray-900 font-medium">Contact</Link>
-          {isSeller && (
-            <button
-              onClick={() => router.push('/seller')}
-              className="text-xs border px-4 py-1.5 rounded-full"
-            >
-              Seller Dashboard
-            </button>
-          )}
+        {/* Links */}
+        <div className="hidden md:flex gap-6 text-gray-800 font-medium">
+          <Link href="/">Linerio</Link>
+          <Link href="/contact">Contact</Link>
         </div>
 
         {/* Right Icons */}
-        <div className="flex items-center gap-4">
-          {/* Wishlist using HeartIcon */}
+        <div className="flex items-center gap-6">
           <button
-            onClick={() => {
-              handlePress(setPressedWishlist);
-              // existing wishlist logic here (if any)
-            }}
-            className={`relative text-gray-600 hover:text-red-600 hidden sm:block
-              ${pressedWishlist ? 'bg-gray-200 bg-opacity-40 rounded-full p-1' : 'p-0'}
-            `}
+            onClick={() => setIsCartOpen(true)}
+            className="relative text-gray-600 hover:text-black"
+            aria-label="Cart"
+            style={{ padding: 4 }}
           >
-            <HeartIcon className="h-6 w-6 stroke-2" />
-            {wishlistCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                {wishlistCount}
-              </span>
-            )}
-          </button>
-
-          {/* Cart using BagOpenIcon (ShoppingBag alias) */}
-          <button
-            onClick={() => {
-              handlePress(setPressedCart);
-              setIsCartOpen(true);
-            }}
-            className={`relative text-gray-600 hover:text-gray-900
-              ${pressedCart ? 'bg-gray-200 bg-opacity-40 rounded-full p-1' : 'p-0'}
-            `}
-          >
-            <BagOpenIcon className="h-6 w-6 stroke-2" />
+            <ShoppingBag className="w-5 h-5" />
             {cartCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+              <span className="absolute -top-1 -right-2 bg-red-600 text-white text-xs rounded-full px-1">
                 {cartCount}
               </span>
             )}
           </button>
-
-          {/* User / Clerk Sign‑In */}
-          {clerkUser ? (
-            <UserButton>
-              <UserButton.MenuItems>
-                <UserButton.Action
-                  label="Home"
-                  labelIcon={<HomeIcon />}
-                  onClick={() => router.push('/')} />
-              </UserButton.MenuItems>
-              <UserButton.MenuItems>
-                <UserButton.Action
-                  label="Products"
-                  labelIcon={<BoxIcon />}
-                  onClick={() => router.push('/all-products')} />
-              </UserButton.MenuItems>
-              <UserButton.MenuItems>
-                <UserButton.Action
-                  label="Cart"
-                  labelIcon={<BagOpenIcon />}
-                  onClick={() => router.push('/cart')} />
-              </UserButton.MenuItems>
-              <UserButton.MenuItems>
-                <UserButton.Action
-                  label="My Orders"
-                  labelIcon={<BoxIcon />}
-                  onClick={() => router.push('/my-orders')} />
-              </UserButton.MenuItems>
-            </UserButton>
-          ) : (
-            <button
-              onClick={() => {
-                handlePress(setPressedUser);
-                if (!isOtpVerified) setShowAuthModal(true);
-                else openSignIn();
-              }}
-              className={`text-gray-600 hover:text-gray-900
-                ${pressedUser ? 'bg-gray-200 bg-opacity-40 rounded-full p-1' : 'p-0'}
-              `}
-              aria-label="Account"
-            >
-              <UserIcon className="h-6 w-6 stroke-2" />
-            </button>
-          )}
-
-          {/* Mobile Menu Toggle */}
-          <button className="md:hidden text-gray-600 hover:text-gray-900" onClick={() => setMobileMenuOpen(true)}>
-            <Menu className="h-6 w-6" />
+          <button
+            className="text-gray-600 hover:text-black"
+            aria-label="Wishlist"
+            style={{ padding: 4 }}
+          >
+            <Heart className="w-5 h-5" />
           </button>
-        </div>
-      </nav>
-
-      {/* Mobile Menu Overlay */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 bg-white z-50 p-4">
-          <div className="flex justify-between items-center mb-6">
-            <Image src={assets.logo} alt="Logo" width={80} height={24} />
-            <button onClick={() => setMobileMenuOpen(false)} className="text-gray-600 hover:text-gray-900">
-              <X className="h-6 w-6" />
-            </button>
-          </div>
-          <nav className="flex flex-col gap-6">
-            <Link href="/" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium">Home</Link>
-            <Link href="/contact" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium">Contact</Link>
-            {isSeller && (
+          <div className="relative" ref={dropdownRef}>
+            {isLoggedIn ? (
+              <>
+                <button
+                  onClick={() => setShowDropdown((v) => !v)}
+                  className="text-gray-600 hover:text-black font-medium select-none flex items-center justify-center w-8 h-8 rounded-full bg-gray-100"
+                  aria-haspopup="true"
+                  aria-expanded={showDropdown}
+                  aria-label="User menu"
+                  type="button"
+                  style={{ padding: 0 }}
+                >
+                  <UserIcon className="w-5 h-5" />
+                </button>
+                {showDropdown && (
+                  <div
+                    className="absolute right-0 mt-3 w-60 bg-white shadow-lg rounded-xl py-2 z-[10000] border border-gray-100"
+                    style={{
+                      minWidth: '220px',
+                      boxShadow:
+                        '0 4px 24px 0 rgba(34,34,34,0.09), 0 1.5px 7.5px 0 rgba(34,34,34,0.03)',
+                    }}
+                  >
+                    <div className="px-4 pt-3 pb-1">
+                      <div className="text-[13px] text-gray-800 font-semibold leading-tight">
+                        {userName || 'Guest'}
+                      </div>
+                      <div className="text-[12px] text-gray-400 truncate">{userEmail}</div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setShowDropdown(false);
+                        router.push('/add-address');
+                      }}
+                      className="flex gap-2 items-center w-full px-4 py-2 mt-2 hover:bg-gray-100 rounded-md text-gray-700 font-medium text-[15px] transition"
+                      type="button"
+                    >
+                      <UserIcon className="w-4 h-4 text-gray-500" />
+                      Profile
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      className="flex gap-2 items-center w-full px-4 py-2 hover:bg-gray-100 rounded-md text-red-600 font-medium text-[15px] transition"
+                      type="button"
+                    >
+                      <svg
+                        className="w-4 h-4 text-red-500"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H7a2 2 0 01-2-2V7a2 2 0 012-2h4a2 2 0 012 2v1"
+                        />
+                      </svg>
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </>
+            ) : (
               <button
-                onClick={() => { router.push('/seller'); setMobileMenuOpen(false); }}
-                className="text-lg font-medium border px-4 py-1.5 rounded-full"
+                onClick={() => setShowAuthModal(true)}
+                className="text-gray-600 hover:text-black flex items-center justify-center w-8 h-8 rounded-full bg-gray-100"
+                aria-label="Login"
+                type="button"
               >
-                Seller Dashboard
+                <UserIcon className="w-5 h-5" />
               </button>
             )}
-          </nav>
-          <div className="mt-8 border-t pt-6 flex flex-col gap-6">
-            <button className="flex items-center gap-2 text-lg text-gray-600 hover:text-red-600" onClick={() => { setMobileMenuOpen(false); }}>
-              <HeartIcon className="h-6 w-6 stroke-2" /> Wishlist
-            </button>
-            <button className="flex items-center gap-2 text-lg text-gray-600 hover:text-gray-900" onClick={() => { setIsCartOpen(true); setMobileMenuOpen(false); }}>
-              <BagOpenIcon className="h-6 w-6 stroke-2" /> Cart ({cartCount})
-            </button>
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false);
-                if (!isOtpVerified) setShowAuthModal(true);
-                else openSignIn();
-              }}
-              className="flex items-center gap-2 text-lg text-gray-600 hover:text-gray-900"
-            >
-              <UserIcon className="h-6 w-6 stroke-2" /> {clerkUser ? 'My Account' : 'Sign In'}
-            </button>
           </div>
         </div>
-      )}
-
-      {/* Cart Sidebar */}
-      <CartSidebar open={isCartOpen} onClose={() => setIsCartOpen(false)} />
-
+      </nav>
       {/* Auth Modal */}
       {showAuthModal && (
-        <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} onVerify={handleVerify} />
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          onVerified={handleVerified}
+        />
       )}
+      {/* Cart Sidebar */}
+      <CartSidebar open={isCartOpen} onClose={() => setIsCartOpen(false)} />
     </>
   );
 }

@@ -1,28 +1,25 @@
 import { NextResponse } from 'next/server';
 import twilio from 'twilio';
+
 const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-const otpStore = global.otpStore || (global.otpStore = {});
+const serviceSid = process.env.TWILIO_SERVICE_SID;
 
 export async function POST(req) {
-  const { phone } = await req.json();
-
-  if (!phone) {
-    return NextResponse.json({ success: false, message: 'Phone number required' }, { status: 400 });
-  }
-
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  otpStore[phone] = otp;
-
+  console.log('SERVICE SID:', serviceSid); // <--- See what prints here!
   try {
-    await client.messages.create({
-      body: `Your OTP is ${otp}`,
-      to: phone,
-      from: process.env.TWILIO_PHONE_NUMBER,
-    });
+    const { phone } = await req.json();
 
-    return NextResponse.json({ success: true });
+    if (!phone || !phone.startsWith('+')) {
+      return NextResponse.json({ success: false, message: 'Invalid phone number' }, { status: 400 });
+    }
+
+    const verification = await client.verify
+      .services(serviceSid)
+      .verifications.create({ to: phone, channel: 'sms' });
+
+    return NextResponse.json({ success: true, status: verification.status });
   } catch (error) {
-    console.error('Twilio Error:', error.message);
-    return NextResponse.json({ success: false, message: 'Failed to send OTP' }, { status: 500 });
+    console.error('[Twilio SEND OTP Error]', error);
+    return NextResponse.json({ success: false, message: error.message || 'OTP send failed' }, { status: 500 });
   }
 }

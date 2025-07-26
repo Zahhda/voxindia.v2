@@ -1,6 +1,5 @@
 "use client";
 import { useAppContext } from "@/context/AppContext";
-import axios from "axios";
 import React, { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 
@@ -18,141 +17,78 @@ const OrderSummary = () => {
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [userAddresses, setUserAddresses] = useState([]);
+
   const [paymentMethod, setPaymentMethod] = useState("razorpay");
+  const [showAddressModal, setShowAddressModal] = useState(false);
 
-  const fetchUserAddresses = async () => {
-    try {
-      const token = await getToken();
-      const { data } = await axios.get("/api/user/get-address", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (data.success) {
-        setUserAddresses(data.addresses);
-        if (data.addresses.length > 0) {
-          setSelectedAddress(data.addresses[0]);
-        }
-      } else {
-        toast.error(data.message);
-      }
-    } catch (error) {
-      toast.error(error.message);
-    }
+  // For demo: prefill a random address when modal opens
+  const randomDemoAddress = {
+    fullName: "John Doe",
+    phoneNumber: "9876543210",
+    pincode: "560001",
+    area: "Demo Area, Test Street",
+    city: "Bangalore",
+    state: "Karnataka",
   };
 
-  const loadRazorpayScript = () => {
-    return new Promise((resolve) => {
-      const script = document.createElement("script");
-      script.src = "https://checkout.razorpay.com/v1/checkout.js";
-      script.onload = () => resolve(true);
-      script.onerror = () => resolve(false);
-      document.body.appendChild(script);
-    });
+  const [newAddress, setNewAddress] = useState(randomDemoAddress);
+
+  // When modal opens, reset form to demo address
+  const openAddressModal = () => {
+    setNewAddress(randomDemoAddress);
+    setShowAddressModal(true);
   };
 
-  const createOrder = async () => {
-    try {
-      if (!user) return toast("Please login to place order", { icon: "⚠️" });
-      if (!selectedAddress) return toast.error("Please select an address");
+  // Demo save: just add address locally without API call
+  const saveNewAddress = (e) => {
+    e.preventDefault();
 
-      let cartItemsArray = Object.keys(cartItems).map((key) => ({
-        product: key,
-        quantity: cartItems[key],
-      }));
-      cartItemsArray = cartItemsArray.filter((item) => item.quantity > 0);
-      if (cartItemsArray.length === 0) return toast.error("Cart is empty");
-
-      const token = await getToken();
-      const totalAmount = getCartAmount() + Math.floor(getCartAmount() * 0.02);
-
-      if (paymentMethod === "cod") {
-        // 🧾 COD Flow
-        const { data } = await axios.post(
-          "/api/order/create",
-          {
-            address: selectedAddress._id,
-            items: cartItemsArray,
-            payment_mode: "COD",
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-
-        if (data.success) {
-          toast.success(data.message);
-          setCartItems({});
-          router.push("/order-placed");
-        } else {
-          toast.error(data.message);
-        }
-        return;
-      }
-
-      // 💳 Razorpay Online Payment
-      const razorpayOrder = await axios.post("/api/razorpay/order", {
-        amount: totalAmount,
-      });
-
-      if (!razorpayOrder.data.success) {
-        return toast.error("Failed to create payment order");
-      }
-
-      const loaded = await loadRazorpayScript();
-      if (!loaded) return toast.error("Failed to load Razorpay script");
-
-      const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: razorpayOrder.data.order.amount,
-        currency: "INR",
-        name: "Voxindia",
-        description: "Order Payment",
-        order_id: razorpayOrder.data.order.id,
-        handler: async function (response) {
-          const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = response;
-
-          const confirm = await axios.post(
-            "/api/order/create",
-            {
-              address: selectedAddress._id,
-              items: cartItemsArray,
-              payment_id: razorpay_payment_id,
-              razorpay_order_id,
-              signature: razorpay_signature,
-            },
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          );
-
-          if (confirm.data.success) {
-            toast.success(confirm.data.message);
-            setCartItems({});
-            router.push("/order-placed");
-          } else {
-            toast.error("Payment verified but order failed");
-          }
-        },
-        theme: { color: "#f40000" },
-        prefill: {
-          name: user?.fullName || "Customer",
-          email: user?.email,
-        },
-      };
-
-      const razorpayObject = new window.Razorpay(options);
-      razorpayObject.open();
-    } catch (error) {
-      toast.error(error.message);
+    // Validate required fields
+    if (
+      !newAddress.fullName ||
+      !newAddress.phoneNumber ||
+      !newAddress.pincode ||
+      !newAddress.area ||
+      !newAddress.city ||
+      !newAddress.state
+    ) {
+      return toast.error("Please fill all fields");
     }
+
+    // Add new address to local state list
+    const newId = Date.now().toString();
+    setUserAddresses((prev) => [...prev, { ...newAddress, _id: newId }]);
+    setSelectedAddress({ ...newAddress, _id: newId });
+    setShowAddressModal(false);
+    toast.success("Address added (demo mode)");
   };
 
-  useEffect(() => {
-    if (user) {
-      fetchUserAddresses();
-    }
-  }, [user]);
-
-  // Helper to format INR currency
+  // Dummy format function
   const formatINR = (amount) =>
-    new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(amount);
+    new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(
+      amount
+    );
+
+  // Simulate initial user addresses empty for demo
+  useEffect(() => {
+    setUserAddresses([]);
+  }, []);
+
+  // Simplified createOrder just demo toast (no payment, no login check)
+  const createOrder = () => {
+    if (!selectedAddress) return toast.error("Please select an address");
+
+    let cartItemsArray = Object.keys(cartItems).map((key) => ({
+      product: key,
+      quantity: cartItems[key],
+    }));
+    cartItemsArray = cartItemsArray.filter((item) => item.quantity > 0);
+    if (cartItemsArray.length === 0) return toast.error("Cart is empty");
+
+    toast.success("Order placed successfully (demo mode)");
+    setCartItems({});
+    router.push("/order-placed");
+  };
 
   return (
     <div className="w-full md:w-96 bg-gray-500/5 p-5">
@@ -184,24 +120,32 @@ const OrderSummary = () => {
                 viewBox="0 0 24 24"
                 stroke="#6B7280"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M19 9l-7 7-7-7"
+                />
               </svg>
             </button>
 
             {isDropdownOpen && (
-              <ul className="absolute w-full bg-white border shadow-md mt-1 z-10 py-1.5">
-                {userAddresses.map((address, index) => (
+              <ul className="absolute w-full bg-white border shadow-md mt-1 z-10 py-1.5 max-h-48 overflow-auto">
+                {userAddresses.map((address) => (
                   <li
-                    key={index}
+                    key={address._id}
                     className="px-4 py-2 hover:bg-gray-500/10 cursor-pointer"
-                    onClick={() => setSelectedAddress(address)}
+                    onClick={() => {
+                      setSelectedAddress(address);
+                      setIsDropdownOpen(false);
+                    }}
                   >
                     {address.fullName}, {address.area}, {address.city}, {address.state}
                   </li>
                 ))}
                 <li
-                  onClick={() => router.push("/add-address")}
-                  className="px-4 py-2 hover:bg-gray-500/10 cursor-pointer text-center"
+                  onClick={openAddressModal}
+                  className="px-4 py-2 cursor-pointer text-center text-red-700 font-semibold hover:bg-red-100"
                 >
                   + Add New Address
                 </li>
@@ -227,14 +171,19 @@ const OrderSummary = () => {
 
         {/* Promo Code (Optional UI Only) */}
         <div>
-          <label className="text-base font-medium uppercase text-gray-600 block mb-2">Promo Code</label>
+          <label className="text-base font-medium uppercase text-gray-600 block mb-2">
+            Promo Code
+          </label>
           <div className="flex flex-col items-start gap-3">
             <input
               type="text"
               placeholder="Enter promo code"
               className="flex-grow w-full outline-none p-2.5 text-gray-600 border"
+              disabled
             />
-            <button className="bg-red-700 text-white px-9 py-2 hover:bg-red-700">Apply</button>
+            <button className="bg-red-700 text-white px-9 py-2 hover:bg-red-700" disabled>
+              Apply
+            </button>
           </div>
         </div>
 
@@ -250,11 +199,7 @@ const OrderSummary = () => {
             <p className="text-gray-600">Shipping Fee</p>
             <p className="font-medium text-gray-800">Free</p>
           </div>
-          <div className="flex justify-between">
-            {/* Uncomment and use if needed */}
-            {/* <p className="text-gray-600">Tax (2%)</p> */}
-            {/* <p className="font-medium text-gray-800">{formatINR(Math.floor(getCartAmount() * 0.02))}</p> */}
-          </div>
+          <div className="flex justify-between"></div>
           <div className="flex justify-between text-lg md:text-xl font-medium border-t pt-3">
             <p>Total</p>
             <p>{formatINR(getCartAmount() + Math.floor(getCartAmount() * 0.02))}</p>
@@ -269,6 +214,89 @@ const OrderSummary = () => {
       >
         Place Order
       </button>
+
+      {/* Address Modal Popup */}
+      {showAddressModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-6 rounded max-w-md w-full relative overflow-auto max-h-[90vh]">
+            <button
+              className="absolute top-3 right-3 text-gray-600 hover:text-gray-900 font-bold text-xl"
+              onClick={() => setShowAddressModal(false)}
+            >
+              &times;
+            </button>
+            <h3 className="text-lg font-semibold mb-4">Add New Address (Demo)</h3>
+            <form onSubmit={saveNewAddress} className="space-y-3">
+              <input
+                type="text"
+                placeholder="Full Name"
+                value={newAddress.fullName}
+                onChange={(e) =>
+                  setNewAddress({ ...newAddress, fullName: e.target.value })
+                }
+                required
+                className="w-full border px-3 py-2 rounded outline-none"
+              />
+              <input
+                type="text"
+                placeholder="Phone Number"
+                value={newAddress.phoneNumber}
+                onChange={(e) =>
+                  setNewAddress({ ...newAddress, phoneNumber: e.target.value })
+                }
+                required
+                className="w-full border px-3 py-2 rounded outline-none"
+              />
+              <input
+                type="text"
+                placeholder="Pincode"
+                value={newAddress.pincode}
+                onChange={(e) =>
+                  setNewAddress({ ...newAddress, pincode: e.target.value })
+                }
+                required
+                className="w-full border px-3 py-2 rounded outline-none"
+              />
+              <textarea
+                placeholder="Area and Street"
+                value={newAddress.area}
+                onChange={(e) =>
+                  setNewAddress({ ...newAddress, area: e.target.value })
+                }
+                required
+                className="w-full border px-3 py-2 rounded outline-none resize-none"
+                rows={3}
+              />
+              <input
+                type="text"
+                placeholder="City"
+                value={newAddress.city}
+                onChange={(e) =>
+                  setNewAddress({ ...newAddress, city: e.target.value })
+                }
+                required
+                className="w-full border px-3 py-2 rounded outline-none"
+              />
+              <input
+                type="text"
+                placeholder="State"
+                value={newAddress.state}
+                onChange={(e) =>
+                  setNewAddress({ ...newAddress, state: e.target.value })
+                }
+                required
+                className="w-full border px-3 py-2 rounded outline-none"
+              />
+              <button
+                type="submit"
+                className="w-full bg-red-700 text-white py-2 mt-4 rounded hover:bg-red-800"
+              >
+                Save Address
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
