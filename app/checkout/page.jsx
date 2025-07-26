@@ -20,7 +20,6 @@ const COLOR_HEX = {
 
 const CheckoutPage = () => {
   const { cartItems, products, setCartItems } = useAppContext();
-
   const cartArray = Object.entries(cartItems || {});
 
   const formatINR = (amount) =>
@@ -29,58 +28,28 @@ const CheckoutPage = () => {
       currency: "INR",
     }).format(amount);
 
+  // Update quantity and sync via context
   const updateQuantity = (key, newQty) => {
     if (newQty < 1) return;
     const updatedCart = { ...cartItems, [key]: newQty };
     setCartItems(updatedCart);
   };
 
+  // Remove item and sync via context
   const removeItem = (key) => {
     const updatedCart = { ...cartItems };
     delete updatedCart[key];
     setCartItems(updatedCart);
   };
 
-  // Increased max height: approx 5 items * 130px + gaps
-  const maxCartItemsHeight = 130 * 5 + 16 * 4; // 5 items + 4 gaps
-
   return (
     <>
-      <style>{`
-        body, button, input, select, textarea {
-          font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
-        /* Black scrollbar styles for webkit browsers */
-        .scrollbar-black::-webkit-scrollbar {
-          width: 8px;
-        }
-        .scrollbar-black::-webkit-scrollbar-track {
-          background: #f3f4f6; /* Tailwind gray-100 */
-        }
-        .scrollbar-black::-webkit-scrollbar-thumb {
-          background-color: #000000; /* Black */
-          border-radius: 9999px;
-          border: 2px solid #f3f4f6; /* same as track */
-        }
-        /* Firefox scrollbar */
-        .scrollbar-black {
-          scrollbar-width: thin;
-          scrollbar-color: #000000 #f3f4f6;
-        }
-      `}</style>
-
       <Navbar />
 
-      <div className="w-full px-6 md:px-16 lg:px-2 pt-16 pb-24 bg-gray-50 min-h-screen flex justify-center">
-        <div className="bg-white rounded-lg shadow-lg w-full max-w-full p-10 flex gap-12">
-          <section
-            className="md:flex-[3] flex flex-col rounded-lg"
-            style={{
-              maxHeight: maxCartItemsHeight + 120, // space for header/footer
-              minWidth: 0,
-              overflow: "hidden",
-            }}
-          >
+      <div className="w-full px-4 md:px-8 pt-16 pb-24 bg-gray-50 min-h-screen flex justify-center">
+        <div className="bg-white rounded-lg shadow-lg w-full max-w-[1280px] p-6 md:p-10 flex flex-col md:flex-row gap-8">
+          {/* Left: Cart Items */}
+          <section className="md:flex-[3]">
             <h2 className="text-3xl font-semibold mb-6 text-gray-800 border-b border-gray-200 pb-3">
               Your Cart Items
             </h2>
@@ -90,10 +59,7 @@ const CheckoutPage = () => {
                 Your cart is empty.
               </p>
             ) : (
-              <div
-                className="overflow-y-auto pr-4 flex-grow space-y-6 scrollbar-black"
-                style={{ maxHeight: maxCartItemsHeight }}
-              >
+              <div className="space-y-6 max-h-[600px] overflow-y-auto scrollbar-black pr-2">
                 {cartArray.map(([key, quantity]) => {
                   const [productId, variantId, colorName] = key.split("|");
                   const product = products.find((p) => p._id === productId);
@@ -112,33 +78,33 @@ const CheckoutPage = () => {
                   return (
                     <article
                       key={key}
-                      className="flex gap-6 items-center border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-lg transition"
+                      className="flex gap-4 md:gap-6 items-center border border-gray-200 rounded-lg p-4 shadow-sm"
                     >
                       {img && (
                         <Image
                           src={img}
                           alt={product.name}
-                          width={110}
-                          height={110}
+                          width={100}
+                          height={100}
                           className="rounded-lg object-cover flex-shrink-0"
                           unoptimized
                         />
                       )}
 
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-xl font-semibold text-gray-900 truncate">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-gray-900 truncate">
                           {product.name}
                         </h3>
-                        <p className="text-gray-600 mt-1 truncate">
+                        <p className="text-gray-600 text-sm">
                           Variant:{" "}
                           <span className="font-medium text-gray-800">
                             {variant?.name ?? "Default"}
                           </span>
                         </p>
-                        <p className="flex items-center gap-2 mt-1">
+                        <p className="text-sm flex items-center gap-2 mt-1">
                           Color:{" "}
                           <span
-                            className="inline-block w-6 h-6 rounded-full border border-gray-300"
+                            className="inline-block w-5 h-5 rounded-full border border-gray-300"
                             style={{
                               backgroundColor: COLOR_HEX[color?.name] || "#ccc",
                             }}
@@ -172,13 +138,12 @@ const CheckoutPage = () => {
                             onClick={() => removeItem(key)}
                             aria-label="Remove item"
                             className="ml-4 text-red-600 font-bold text-xl hover:text-red-800 transition"
-                            title="Remove item"
                           >
                             ×
                           </button>
                         </div>
 
-                        <p className="mt-3 text-gray-800 font-semibold">
+                        <p className="mt-3 text-gray-800 font-medium">
                           Price: {formatINR(price)} × {quantity} ={" "}
                           <span className="text-red-600 font-bold">
                             {formatINR(price * quantity)}
@@ -218,11 +183,8 @@ const CheckoutPage = () => {
             )}
           </section>
 
-          {/* Right: Order Summary non-scrollable */}
-          <aside
-            className="md:flex-[2] bg-white rounded-lg shadow-md p-8 sticky top-24 self-start"
-            style={{ minWidth: "300px", maxHeight: "none", overflow: "visible" }}
-          >
+          {/* Right: Order Summary */}
+          <aside className="md:flex-[2] bg-white rounded-lg shadow-md p-6 sticky top-24 self-start min-w-[300px]">
             <OrderSummary />
           </aside>
         </div>

@@ -1,10 +1,10 @@
 "use client";
-import React from "react";
+
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { useAppContext } from "@/context/AppContext";
-import { useRouter } from "next/navigation";
 
-const CartSidebar = ({ open, onClose }) => {
+const CartSidebar = ({ open, onClose, onOpenAuth }) => {
   const {
     cartItems,
     products,
@@ -12,22 +12,28 @@ const CartSidebar = ({ open, onClose }) => {
     updateCartItemQuantity,
     removeFromCart,
   } = useAppContext();
-  const router = useRouter();
 
-  const cartArray = Object.entries(cartItems || {});
+  const [userName, setUserName] = useState("");
+  const [userPhone, setUserPhone] = useState("");
+  const [otpVerified, setOtpVerified] = useState(false);
+
+  useEffect(() => {
+    setUserName(sessionStorage.getItem("user_name") || "");
+    setUserPhone(sessionStorage.getItem("user_phone") || "");
+    setOtpVerified(sessionStorage.getItem("otp_verified") === "true");
+  }, [open]);
 
   const handleCheckout = () => {
+    if (!otpVerified) {
+      onClose();
+      onOpenAuth(); // Open OTP modal before checkout
+      return;
+    }
     onClose();
-    router.push("/checkout");
+    window.location.href = "/checkout";
   };
 
-  React.useEffect(() => {
-    if (open) document.body.style.overflow = "hidden";
-    else document.body.style.overflow = "";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [open]);
+  const cartArray = Object.entries(cartItems || {});
 
   const colorMap = {
     White: "#fff",
@@ -76,17 +82,12 @@ const CartSidebar = ({ open, onClose }) => {
 
       {/* Sidebar */}
       <aside
-        style={{
-          fontFamily:
-            "'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-        }}
         className={`fixed top-0 right-0 h-full w-[90vw] max-w-md bg-white z-[9999] shadow-2xl rounded-l-xl transform transition-transform duration-500 ease-in-out flex flex-col
         ${open ? "translate-x-0" : "translate-x-full"}`}
         role="dialog"
         aria-modal="true"
         aria-label="Shopping cart"
       >
-        {/* Header */}
         <div className="flex items-center justify-between p-5 border-b flex-shrink-0">
           <h2 className="text-2xl font-semibold tracking-wide text-gray-900">Your Cart</h2>
           <button
@@ -98,21 +99,29 @@ const CartSidebar = ({ open, onClose }) => {
           </button>
         </div>
 
-        {/* Scrollable cart items */}
+        {otpVerified ? (
+          <div className="px-5 py-3 border-b text-gray-700">
+            Logged in as: <strong>{userName}</strong> ({userPhone})
+          </div>
+        ) : (
+          <div className="px-5 py-3 border-b text-red-600 font-semibold">
+            Please verify your phone to proceed.
+          </div>
+        )}
+
         <div className="p-5 overflow-y-auto flex-grow space-y-6">
           {cartArray.length === 0 ? (
             <p className="text-center text-gray-500 mt-10">Your cart is empty</p>
           ) : (
             cartArray.map(([key, quantity]) => {
-              const [productId, variantId, colorName] = key.split('|');
+              const [productId, variantId, colorName] = key.split("|");
               const product = products.find((p) => p._id === productId);
               if (!product) return null;
 
               const variant = product.variants?.find((v) => v._id === variantId) || product.variants?.[0];
               const color = variant?.colors?.find((c) => c.name === colorName) || variant?.colors?.[0];
               const img = color?.image || product.image?.[0];
-
-              const itemPrice = (color?.price ?? product?.offerPrice ?? product?.price) || 0;
+              const itemPrice = color?.price ?? product?.offerPrice ?? product?.price ?? 0;
 
               return (
                 <div
@@ -136,12 +145,9 @@ const CartSidebar = ({ open, onClose }) => {
                       ₹{(itemPrice * quantity).toFixed(2)}
                     </p>
 
-                    {/* Quantity Controls */}
                     <div className="flex items-center gap-3 mt-3">
                       <button
-                        onClick={() =>
-                          updateCartItemQuantity(key, Math.max(1, quantity - 1))
-                        }
+                        onClick={() => updateCartItemQuantity(key, Math.max(1, quantity - 1))}
                         className="w-8 h-8 rounded border border-gray-300 text-gray-600 font-bold hover:bg-gray-100 transition"
                         aria-label="Decrease quantity"
                       >
@@ -156,7 +162,6 @@ const CartSidebar = ({ open, onClose }) => {
                         +
                       </button>
 
-                      {/* Remove button */}
                       <button
                         onClick={() => removeFromCart(key)}
                         className="ml-auto text-red-600 hover:text-red-800 font-semibold transition"
@@ -172,7 +177,6 @@ const CartSidebar = ({ open, onClose }) => {
           )}
         </div>
 
-        {/* Footer pinned at bottom */}
         <div className="p-5 border-t flex-shrink-0 bg-white">
           <p className="font-semibold text-lg mb-4 text-gray-900">
             Total: ₹{getCartAmount().toFixed(2)}

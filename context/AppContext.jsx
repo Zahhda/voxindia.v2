@@ -1,8 +1,9 @@
-'use client'
+"use client";
+
 import { useAuth, useUser } from "@clerk/nextjs";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useRef } from "react";
 import toast from "react-hot-toast";
 
 export const AppContext = createContext();
@@ -10,21 +11,58 @@ export const AppContext = createContext();
 export const useAppContext = () => useContext(AppContext);
 
 export const AppContextProvider = (props) => {
-  const currency = process.env.NEXT_PUBLIC_CURRENCY;
+  const currency = process.env.NEXT_PUBLIC_CURRENCY || "INR";
   const router = useRouter();
 
   const { user } = useUser();
   const { getToken } = useAuth();
 
   const [products, setProducts] = useState([]);
-  const [userData, setUserData] = useState(false);
+  const [userData, setUserData] = useState(null);
   const [isSeller, setIsSeller] = useState(false);
-  const [cartItems, setCartItems] = useState({}); 
-  // cartItems format: { "productId|variantId|colorName": quantity }
 
+  // Load cartItems from localStorage first if available
+  const [cartItems, setCartItems] = useState(() => {
+    if (typeof window !== "undefined") {
+      const savedCart = localStorage.getItem("cart");
+      return savedCart ? JSON.parse(savedCart) : {};
+    }
+    return {};
+  });
+
+  // Debounce backend cart sync to avoid too many requests
+  const syncTimeout = useRef(null);
+
+  // Save cartItems to localStorage and schedule backend sync if logged in
+  const updateCart = (newCart) => {
+    setCartItems(newCart);
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem("cart", JSON.stringify(newCart));
+    }
+
+    if (user) {
+      if (syncTimeout.current) clearTimeout(syncTimeout.current);
+      syncTimeout.current = setTimeout(async () => {
+        try {
+          const token = await getToken();
+          await axios.post(
+            "/api/cart/update",
+            { cartData: newCart },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          toast.success("Cart updated");
+        } catch (error) {
+          toast.error("Failed to sync cart");
+        }
+      }, 800); // 800ms debounce
+    }
+  };
+
+  // Fetch product list
   const fetchProductData = async () => {
     try {
-      const { data } = await axios.get('/api/product/list');
+      const { data } = await axios.get("/api/product/list");
       if (data.success) {
         setProducts(data.products);
       } else {
@@ -35,16 +73,22 @@ export const AppContextProvider = (props) => {
     }
   };
 
+  // Fetch user and cart data from backend
   const fetchUserData = async () => {
     try {
-      if (user.publicMetadata.role === 'seller') setIsSeller(true);
+      if (user?.publicMetadata?.role === "seller") setIsSeller(true);
 
       const token = await getToken();
-      const { data } = await axios.get('/api/user/data', { headers: { Authorization: `Bearer ${token}` } });
+      const { data } = await axios.get("/api/user/data", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       if (data.success) {
         setUserData(data.user);
-        setCartItems(data.user.cartItems || {});
+        if (data.user.cartItems) {
+          setCartItems(data.user.cartItems);
+          localStorage.setItem("cart", JSON.stringify(data.user.cartItems));
+        }
       } else {
         toast.error(data.message);
       }
@@ -53,98 +97,72 @@ export const AppContextProvider = (props) => {
     }
   };
 
-  // Helper: create composite key for cart items
-  const makeCartKey = (productId, variantId, colorName) => {
-    return [productId, variantId, colorName].filter(Boolean).join('|');
-  };
+  // Helper to create cart key
+  const makeCartKey = (productId, variantId, colorName) =>
+    [productId, variantId, colorName].filter(Boolean).join("|");
 
+  // Add item to cart (increase quantity if exists)
   const addToCart = async (productId, quantity = 1, variantId = null, colorName = null) => {
-    // if (!user) return toast('Please login', { icon: '⚠️' });
-
-    let cartData = structuredClone(cartItems);
+    let newCart = { ...cartItems };
     const key = makeCartKey(productId, variantId, colorName);
 
-    if (cartData[key]) {
-      cartData[key] += quantity;
-    } else {
-      cartData[key] = quantity;
-    }
+    newCart[key] = (newCart[key] || 0) + quantity;
 
-    setCartItems(cartData);
-
-    if (user) {
-      try {
-        const token = await getToken();
-        await axios.post('/api/cart/update', { cartData }, { headers: { Authorization: `Bearer ${token}` } });
-        toast.success('Item added to cart');
-      } catch (error) {
-        toast.error(error.message);
-      }
-    }
+    updateCart(newCart);
   };
 
+  // Update quantity or remove if quantity <= 0
   const updateCartItemQuantity = async (key, quantity) => {
-    let cartData = structuredClone(cartItems);
+    let newCart = { ...cartItems };
     if (quantity <= 0) {
-      delete cartData[key];
+      delete newCart[key];
     } else {
-      cartData[key] = quantity;
+      newCart[key] = quantity;
     }
-    setCartItems(cartData);
-
-    if (user) {
-      try {
-        const token = await getToken();
-        await axios.post('/api/cart/update', { cartData }, { headers: { Authorization: `Bearer ${token}` } });
-        toast.success('Cart updated');
-      } catch (error) {
-        toast.error(error.message);
-      }
-    }
+    updateCart(newCart);
   };
 
+  // Remove item from cart
   const removeFromCart = async (key) => {
-    let cartData = structuredClone(cartItems);
-    if (cartData[key]) {
-      delete cartData[key];
-      setCartItems(cartData);
-      if (user) {
-        try {
-          const token = await getToken();
-          await axios.post('/api/cart/update', { cartData }, { headers: { Authorization: `Bearer ${token}` } });
-          toast.success('Item removed from cart');
-        } catch (error) {
-          toast.error(error.message);
-        }
-      }
+    let newCart = { ...cartItems };
+    if (newCart[key]) {
+      delete newCart[key];
+      updateCart(newCart);
     }
   };
 
+  // Get total count of all cart items
   const getCartCount = () => {
-    let totalCount = 0;
-    for (const key in cartItems) {
-      if (cartItems[key] > 0) totalCount += cartItems[key];
-    }
-    return totalCount;
+    return Object.values(cartItems).reduce((total, qty) => total + qty, 0);
   };
 
+  // Get total price considering variants and colors
   const getCartAmount = () => {
-    let totalAmount = 0;
+    if (!products || products.length === 0) return 0;
+
+    let total = 0;
     for (const key in cartItems) {
-      const [productId, variantId, colorName] = key.split('|');
-      const product = products.find(p => p._id === productId);
+      const qty = cartItems[key];
+      if (qty <= 0) continue;
+
+      const [productId, variantId, colorName] = key.split("|");
+      const product = products.find((p) => p._id === productId);
       if (!product) continue;
 
-      const variant = product.variants?.find(v => v._id === variantId) || product.variants?.[0];
-      const color = variant?.colors?.find(c => c.name === colorName) || variant?.colors?.[0];
+      const variant =
+        product.variants?.find((v) => v._id === variantId) || product.variants?.[0];
+      const color =
+        variant?.colors?.find((c) => c.name === colorName) || variant?.colors?.[0];
 
       const price = color?.price ?? product?.offerPrice ?? product?.price ?? 0;
 
-      totalAmount += price * cartItems[key];
+      total += price * qty;
     }
-    return Math.floor(totalAmount * 100) / 100;
+
+    return Math.round(total * 100) / 100; // rounded to 2 decimals
   };
 
+  // Initial data fetches
   useEffect(() => {
     fetchProductData();
   }, []);
@@ -165,7 +183,7 @@ export const AppContextProvider = (props) => {
     products,
     fetchProductData,
     cartItems,
-    setCartItems,
+    setCartItems: updateCart, // use updateCart to sync localStorage and backend
     addToCart,
     updateCartItemQuantity,
     removeFromCart,

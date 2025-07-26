@@ -52,7 +52,7 @@ const WhyChooseUs = () => {
 };
 
 const accordionData = [
-  {
+    {
     id: 1,
     question: "What are VOX Linerio Slat Panels?",
     answer:
@@ -355,6 +355,9 @@ export default function ProductPage() {
             {/* Moved Price and Per Sq.ft / Per Panel here */}
             <div className="flex items-center space-x-4 mb-8">
               <span className="text-3xl font-semibold">₹{displayPrice.toFixed(2)}</span>
+              <span className="bg-red-600 text-white px-2 py-1 rounded text-sm font-semibold select-none">
+                5% OFF
+              </span>
               {discountPercent > 0 && (
                 <>
                   <span className="line-through text-lg text-gray-500">
@@ -368,15 +371,15 @@ export default function ProductPage() {
             </div>
 
             <div className="grid grid-cols-2 gap-4 mb-8">
-              <div className="bg-gray-50 p-4 rounded shadow text-center">
+              <div className="bg-gray-50 p-4 rounded shadow text-center flex flex-col items-center justify-center">
                 <div className="text-xs text-gray-600 mb-1">Per sq.ft</div>
-                <div className="font-semibold text-lg">
+                <div className="font-semibold text-lg flex items-center gap-2">
                   ₹{!isNaN(perSqFt) ? perSqFt.toFixed(2) : "N/A"}
                 </div>
               </div>
-              <div className="bg-gray-50 p-4 rounded shadow text-center">
+              <div className="bg-gray-50 p-4 rounded shadow text-center flex flex-col items-center justify-center">
                 <div className="text-xs text-gray-600 mb-1">Per panel</div>
-                <div className="font-semibold text-lg">
+                <div className="font-semibold text-lg flex items-center gap-2">
                   {!isNaN(perPanel) ? perPanel.toFixed(3) + " sq.ft" : "N/A sq.ft"}
                 </div>
               </div>
@@ -387,9 +390,7 @@ export default function ProductPage() {
               <button
                 onClick={() => setBuyMode("panel")}
                 className={`px-3 py-1 rounded-full text-sm font-medium ${
-                  buyMode === "panel"
-                    ? "bg-black text-white"
-                    : "bg-gray-200 text-black"
+                  buyMode === "panel" ? "bg-black text-white" : "bg-gray-200 text-black"
                 }`}
               >
                 By Panel
