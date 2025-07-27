@@ -176,9 +176,13 @@ const CartSidebar = ({ open, onClose, onOpenAuth }) => {
                         +
                       </button>
 
-                      <div className="bg-black text-white px-3 py-1 rounded text-sm font-semibold select-none flex items-center justify-center ml-4 whitespace-nowrap">
-                        {totalPanelSqFt.toFixed(3)} sq.ft
-                      </div>
+                     <div className="bg-gray-50 rounded-md shadow px-4 py-2 w-36 text-center select-none">
+  <div className="text-xs text-gray-500 mb-1">Per panel</div>
+  <div className="font-semibold text-lg text-gray-900">
+    {totalPanelSqFt.toFixed(3)} sq.ft
+  </div>
+</div>
+
 
                       <button
                         onClick={() => removeFromCart(key)}
