@@ -203,7 +203,7 @@ export default function AuthModal({ isOpen, onClose, onVerified }) {
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
-              placeholder="Your Name (optional)"
+              placeholder="Your Name"
               className="w-full border border-gray-300 rounded-xl px-4 py-2 mb-6 focus:outline-none focus:ring-2 focus:ring-[#e80808] transition"
             />
           </>
