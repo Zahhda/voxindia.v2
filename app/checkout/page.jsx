@@ -20,6 +20,8 @@ const COLOR_HEX = {
 
 const CheckoutPage = () => {
   const { cartItems, products, setCartItems } = useAppContext();
+
+  // Convert cartItems object to array for rendering
   const cartArray = Object.entries(cartItems || {});
 
   const formatINR = (amount) =>
@@ -31,8 +33,14 @@ const CheckoutPage = () => {
   // Update quantity and sync via context
   const updateQuantity = (key, newQty) => {
     if (newQty < 1) return;
-    const updatedCart = { ...cartItems, [key]: newQty };
-    setCartItems(updatedCart);
+    const updatedCart = { ...cartItems };
+    if (updatedCart[key]) {
+      updatedCart[key] = {
+        ...updatedCart[key],
+        quantity: newQty,
+      };
+      setCartItems(updatedCart);
+    }
   };
 
   // Remove item and sync via context
@@ -60,7 +68,9 @@ const CheckoutPage = () => {
               </p>
             ) : (
               <div className="space-y-6 max-h-[600px] overflow-y-auto scrollbar-black pr-2">
-                {cartArray.map(([key, quantity]) => {
+                {cartArray.map(([key, item]) => {
+                  // Extract quantity safely
+                  const quantity = item.quantity ?? 1;
                   const [productId, variantId, colorName] = key.split("|");
                   const product = products.find((p) => p._id === productId);
                   if (!product) return null;
@@ -161,7 +171,8 @@ const CheckoutPage = () => {
                 <span>Total:</span>
                 <span className="text-red-600">
                   {formatINR(
-                    cartArray.reduce((acc, [key, qty]) => {
+                    cartArray.reduce((acc, [key, item]) => {
+                      const quantity = item.quantity ?? 1;
                       const [productId, variantId, colorName] = key.split("|");
                       const product = products.find((p) => p._id === productId);
                       if (!product) return acc;
@@ -175,7 +186,7 @@ const CheckoutPage = () => {
                       const price =
                         color?.price ?? product?.offerPrice ?? product?.price ?? 0;
 
-                      return acc + price * qty;
+                      return acc + price * quantity;
                     }, 0)
                   )}
                 </span>

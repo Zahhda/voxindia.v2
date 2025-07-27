@@ -16,7 +16,7 @@ const collections = [
     subtitle: "Medium-width lamellas with extra depth",
     colors: ["White", "Grey", "Anthracite", "Black", "Mocca", "Natural", "Natural Black", "Chocolate"],
     image: "/collections/m-line.png",
-    link: "/product/6885435bfdbb8814f789a62a", // M-Line link added
+    link: "/product/6885b1eddf36d2068fa78826", // M-Line link added
   },
   {
     id: 3,

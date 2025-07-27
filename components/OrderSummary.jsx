@@ -129,19 +129,25 @@ export default function OrderSummary() {
   const createOrder = async () => {
     try {
       if (!selected) return toast.error("Please select an address");
+
       let cartItemsArray = Object.keys(cartItems).map((key) => ({
         product: key,
-        quantity: cartItems[key],
+        quantity: cartItems[key]?.quantity || 0,
       }));
+
       cartItemsArray = cartItemsArray.filter((item) => item.quantity > 0);
       if (cartItemsArray.length === 0) return toast.error("Cart is empty");
 
       const token = await getToken();
-      const totalAmount = getCartAmount() + Math.floor(getCartAmount() * 0.02);
 
-      const razorpayOrder = await axios.post("/api/razorpay/order", {
-        amount: totalAmount,
-      });
+      const totalAmount = getCartAmount() + Math.floor(getCartAmount() * 0.02);
+      const totalAmountInPaise = Math.floor(totalAmount * 100);
+
+      const razorpayOrder = await axios.post(
+        "/api/razorpay/order",
+        { amount: totalAmountInPaise },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
       if (!razorpayOrder.data.success) {
         return toast.error("Failed to create payment order");
@@ -164,7 +170,8 @@ export default function OrderSummary() {
         description: "Order Payment",
         order_id: razorpayOrder.data.order.id,
         handler: async function (response) {
-          const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = response;
+          const { razorpay_payment_id, razorpay_order_id, razorpay_signature } =
+            response;
 
           const confirm = await axios.post(
             "/api/order/create",
@@ -202,12 +209,21 @@ export default function OrderSummary() {
     }
   };
 
-  const formatINR = (amount) =>
-    new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(amount);
+  // Use same format function here too
+  function formatINRWithDecimal(amount) {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  }
 
   return (
     <div className="w-full md:w-96 bg-gradient-to-br from-white/80 via-white/70 to-white/80 p-6 rounded-3xl shadow-xl font-sans">
-      <h2 className="text-2xl font-semibold mb-6 text-gray-800 text-center tracking-wide">Order Summary</h2>
+      <h2 className="text-2xl font-semibold mb-6 text-gray-800 text-center tracking-wide">
+        Order Summary
+      </h2>
 
       {/* Address Section */}
       <div className="mb-6">
@@ -233,7 +249,9 @@ export default function OrderSummary() {
             </p>
             <p className="text-gray-600">{selected.state}</p>
             {selected.gstin && (
-              <p className="text-gray-600 mt-1 font-mono text-xs tracking-wider">GSTIN: {selected.gstin}</p>
+              <p className="text-gray-600 mt-1 font-mono text-xs tracking-wider">
+                GSTIN: {selected.gstin}
+              </p>
             )}
           </div>
         ) : (
@@ -290,11 +308,11 @@ export default function OrderSummary() {
       <div className="border-t border-gray-300 pt-5 mb-6 text-gray-700">
         <div className="flex justify-between text-base font-medium">
           <span>Items ({getCartCount()})</span>
-          <span>{formatINR(getCartAmount())}</span>
+          <span>{formatINRWithDecimal(getCartAmount())}</span>
         </div>
         <div className="flex justify-between font-semibold mt-1 text-lg">
           <span>Total</span>
-          <span>{formatINR(getCartAmount())}</span>
+          <span>{formatINRWithDecimal(getCartAmount())}</span>
         </div>
       </div>
 
@@ -308,50 +326,50 @@ export default function OrderSummary() {
       </button>
 
       {/* Add/Edit Address Modal */}
-{/* Add/Edit Address Modal */}
-{showModal && (
-  <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
-    <div className="bg-white p-4 rounded-2xl shadow-2xl w-full max-w-sm relative">
-      <button
-        onClick={() => setShowModal(false)}
-        className="absolute top-3 right-3 text-gray-600 hover:text-gray-800 text-2xl font-bold"
-      >
-        ×
-      </button>
-      <h3 className="text-lg font-semibold mb-4 text-center text-gray-800">Add / Edit Address</h3>
-      <form onSubmit={saveAddress} className="space-y-3">
-        {[
-          { k: "fullName", label: "Full Name" },
-          { k: "phoneNumber", label: "Phone Number" },
-          { k: "email", label: "Email", type: "email" },
-          { k: "gstin", label: "GSTIN (opt.)" },
-          { k: "pincode", label: "Pin Code" },
-          { k: "area", label: "Area & Street" },
-          { k: "city", label: "City" },
-          { k: "state", label: "State" },
-        ].map(({ k, label, type = "text" }) => (
-          <input
-            key={k}
-            type={type}
-            placeholder={label}
-            value={form[k] || ""}
-            onChange={(e) => handleChange(k, e.target.value)}
-            className="w-full border border-gray-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-red-300 outline-none transition"
-            required={k !== "gstin"}
-          />
-        ))}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-xl font-semibold transition"
-        >
-          {loading ? "Saving…" : "Save Address"}
-        </button>
-      </form>
-    </div>
-  </div>
-)}
-
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-4 rounded-2xl shadow-2xl w-full max-w-sm relative">
+            <button
+              onClick={() => setShowModal(false)}
+              className="absolute top-3 right-3 text-gray-600 hover:text-gray-800 text-2xl font-bold"
+            >
+              ×
+            </button>
+            <h3 className="text-lg font-semibold mb-4 text-center text-gray-800">
+              Add / Edit Address
+            </h3>
+            <form onSubmit={saveAddress} className="space-y-3">
+              {[
+                { k: "fullName", label: "Full Name" },
+                { k: "phoneNumber", label: "Phone Number" },
+                { k: "email", label: "Email", type: "email" },
+                { k: "gstin", label: "GSTIN (opt.)" },
+                { k: "pincode", label: "Pin Code" },
+                { k: "area", label: "Area & Street" },
+                { k: "city", label: "City" },
+                { k: "state", label: "State" },
+              ].map(({ k, label, type = "text" }) => (
+                <input
+                  key={k}
+                  type={type}
+                  placeholder={label}
+                  value={form[k] || ""}
+                  onChange={(e) => handleChange(k, e.target.value)}
+                  className="w-full border border-gray-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-red-300 outline-none transition"
+                  required={k !== "gstin"}
+                />
+              ))}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded-xl font-semibold transition"
+              >
+                {loading ? "Saving…" : "Save Address"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -72,7 +72,11 @@ export default function Navbar() {
     router.push('/');
   };
 
-  const cartCount = Object.values(cartItems || {}).reduce((a, b) => a + b, 0);
+  // <-- FIXED: Sum quantities properly -->
+  const cartCount = Object.values(cartItems || {}).reduce(
+    (total, item) => total + (item.quantity || 0),
+    0
+  );
 
   return (
     <>
