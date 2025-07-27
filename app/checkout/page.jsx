@@ -144,12 +144,6 @@ const CheckoutPage = () => {
                             +
                           </button>
                           
-                     <div className="bg-gray-50 rounded-md shadow px-4 py-2 w-36 text-center select-none">
-  <div className="text-xs text-gray-500 mb-1">Per panel</div>
-  <div className="font-semibold text-lg text-gray-900">
-    {totalPanelSqFt.toFixed(3)} sq.ft
-  </div>
-</div>
 
                           <button
                             onClick={() => removeItem(key)}
