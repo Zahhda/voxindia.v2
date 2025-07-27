@@ -43,7 +43,6 @@ export default function MyAddressesPage() {
 
   const saveAddress = async e => {
     e.preventDefault();
-    // basic validation
     for (let key of ["fullName","email","pincode","area","city","state"]) {
       if (!form[key]) {
         alert(`Please fill ${key}`);
@@ -71,13 +70,15 @@ export default function MyAddressesPage() {
   return (
     <>
       <Navbar />
-      <div className="flex bg-gray-50 min-h-screen pt-16">
-        {/* Sidebar */}
-        <aside className="w-56 bg-white shadow-sm">
-          <div className="p-6 font-bold text-xl border-b">VOX</div>
-          <nav className="mt-4">
-            <ul>
-              <li className="px-6 py-3 bg-[#e80808] text-white">
+      <div className="bg-gray-50 min-h-screen pt-16 flex flex-col md:flex-row">
+        {/* Sidebar or Topbar */}
+        <aside className="w-full md:w-56 bg-white shadow-sm">
+          <div className="p-4 md:p-6 font-bold text-xl border-b flex md:block justify-center md:justify-start">
+            VOX
+          </div>
+          <nav className="mt-2 md:mt-4">
+            <ul className="flex md:block justify-center">
+              <li className="px-4 md:px-6 py-2 md:py-3 bg-[#e80808] text-white rounded-t-md md:rounded-none text-center text-sm md:text-base">
                 My Addresses
               </li>
             </ul>
@@ -85,17 +86,19 @@ export default function MyAddressesPage() {
         </aside>
 
         {/* Main */}
-        <main className="flex-1 p-8">
-          <h1 className="text-2xl mb-6 text-gray-900 text-center">
+        <main className="flex-1 px-2 sm:px-4 md:px-8 py-6">
+          <h1 className="text-lg md:text-2xl mb-4 md:mb-6 text-gray-900 text-center">
             Phone: <span className="font-medium">{userPhone || "—"}</span>
           </h1>
 
-          <div className="bg-white rounded-lg shadow p-6 max-w-2xl mx-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Delivery Addresses</h2>
+          <div className="bg-white rounded-lg shadow p-3 sm:p-6 max-w-lg md:max-w-2xl mx-auto">
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-2">
+              <h2 className="text-lg sm:text-xl font-semibold">
+                Delivery Addresses
+              </h2>
               <button
                 onClick={() => setShowForm(f => !f)}
-                className="flex items-center gap-2 bg-[#e80808] text-white px-4 py-2 rounded hover:bg-red-700 transition"
+                className="flex items-center gap-2 bg-[#e80808] text-white px-4 py-2 rounded hover:bg-red-700 transition text-sm sm:text-base"
               >
                 <svg
                   className="w-5 h-5"
@@ -115,19 +118,19 @@ export default function MyAddressesPage() {
             </div>
 
             {loading ? (
-              <p className="text-gray-500 text-center">Loading…</p>
+              <p className="text-gray-500 text-center py-8">Loading…</p>
             ) : addresses.length === 0 ? (
-              <p className="text-gray-500 text-center">No addresses saved.</p>
+              <p className="text-gray-500 text-center py-8">No addresses saved.</p>
             ) : (
               <ul className="space-y-4">
                 {addresses.map(addr => (
-                  <li key={addr._id} className="border rounded p-4">
-                    <p className="font-medium">{addr.fullName}</p>
-                    <p className="text-sm">{addr.phoneNumber} · {addr.email}</p>
-                    <p className="text-sm mt-1">
+                  <li key={addr._id} className="border rounded p-3 sm:p-4 bg-gray-50">
+                    <p className="font-medium text-base">{addr.fullName}</p>
+                    <p className="text-xs sm:text-sm">{addr.phoneNumber} · {addr.email}</p>
+                    <p className="text-xs sm:text-sm mt-1">
                       {addr.area}, {addr.city}, {addr.state} – {addr.pincode}
                     </p>
-                    {addr.gstin && <p className="text-sm">GSTIN: {addr.gstin}</p>}
+                    {addr.gstin && <p className="text-xs sm:text-sm">GSTIN: {addr.gstin}</p>}
                   </li>
                 ))}
               </ul>
@@ -151,14 +154,14 @@ export default function MyAddressesPage() {
                     placeholder={label}
                     value={form[k]||""}
                     onChange={e=>handleField(k,e.target.value)}
-                    className="w-full border px-3 py-2 rounded"
+                    className="w-full border px-3 py-2 rounded text-sm focus:ring-2 focus:ring-[#e80808] focus:outline-none"
                     required={k!=="gstin"}
                   />
                 ))}
                 <button
                   type="submit"
                   disabled={saving}
-                  className="w-full mt-2 bg-[#e80808] text-white py-2 rounded hover:bg-red-700 transition"
+                  className="w-full mt-2 bg-[#e80808] text-white py-2 rounded hover:bg-red-700 transition text-sm sm:text-base"
                 >
                   {saving ? "Saving…" : "Save Address"}
                 </button>

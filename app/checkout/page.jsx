@@ -54,22 +54,21 @@ const CheckoutPage = () => {
     <>
       <Navbar />
 
-      <div className="w-full px-4 md:px-8 pt-16 pb-24 bg-gray-50 min-h-screen flex justify-center">
-        <div className="bg-white rounded-lg shadow-lg w-full max-w-[1280px] p-6 md:p-10 flex flex-col md:flex-row gap-8">
+      <div className="w-full px-2 sm:px-4 md:px-8 pt-16 pb-24 bg-gray-50 min-h-screen flex justify-center">
+        <div className="bg-white rounded-lg shadow-lg w-full max-w-[1280px] p-2 sm:p-4 md:p-8 flex flex-col md:flex-row gap-4 md:gap-8">
           {/* Left: Cart Items */}
-          <section className="md:flex-[3]">
-            <h2 className="text-3xl font-semibold mb-6 text-gray-800 border-b border-gray-200 pb-3">
+          <section className="w-full md:flex-[3] md:mr-4">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold mb-4 sm:mb-6 text-gray-800 border-b border-gray-200 pb-2 sm:pb-3">
               Your Cart Items
             </h2>
 
             {cartArray.length === 0 ? (
-              <p className="text-center text-gray-500 text-lg py-20">
+              <p className="text-center text-gray-500 text-base sm:text-lg py-16 sm:py-20">
                 Your cart is empty.
               </p>
             ) : (
-              <div className="space-y-6 max-h-[600px] overflow-y-auto scrollbar-black pr-2">
+              <div className="space-y-4 sm:space-y-6 max-h-[400px] sm:max-h-[600px] overflow-y-auto pr-1 sm:pr-2 scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100">
                 {cartArray.map(([key, item]) => {
-                  // Extract quantity safely
                   const quantity = item.quantity ?? 1;
                   const [productId, variantId, colorName] = key.split("|");
                   const product = products.find((p) => p._id === productId);
@@ -85,36 +84,47 @@ const CheckoutPage = () => {
                   const price =
                     color?.price ?? product?.offerPrice ?? product?.price ?? 0;
 
+                  // Find per panel sqft (can be at color, variant or product level)
+                  const perPanelSqFt =
+                    color?.perPanelSqFt ||
+                    variant?.perPanelSqFt ||
+                    product.perPanelSqFt ||
+                    null;
+                  const totalSqFt =
+                    perPanelSqFt ? Number(perPanelSqFt) * Number(quantity) : null;
+
                   return (
                     <article
                       key={key}
-                      className="flex gap-4 md:gap-6 items-center border border-gray-200 rounded-lg p-4 shadow-sm"
+                      className="flex flex-col sm:flex-row gap-3 sm:gap-6 items-center border border-gray-200 rounded-lg p-3 sm:p-4 shadow-sm bg-white"
                     >
                       {img && (
-                        <Image
-                          src={img}
-                          alt={product.name}
-                          width={100}
-                          height={100}
-                          className="rounded-lg object-cover flex-shrink-0"
-                          unoptimized
-                        />
+                        <div className="flex-shrink-0 mb-2 sm:mb-0">
+                          <Image
+                            src={img}
+                            alt={product.name}
+                            width={80}
+                            height={80}
+                            className="rounded-lg object-cover"
+                            unoptimized
+                          />
+                        </div>
                       )}
 
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900 truncate">
+                      <div className="flex-1 w-full">
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
                           {product.name}
                         </h3>
-                        <p className="text-gray-600 text-sm">
+                        <p className="text-gray-600 text-xs sm:text-sm">
                           Variant:{" "}
                           <span className="font-medium text-gray-800">
                             {variant?.name ?? "Default"}
                           </span>
                         </p>
-                        <p className="text-sm flex items-center gap-2 mt-1">
+                        <p className="text-xs sm:text-sm flex items-center gap-2 mt-1">
                           Color:{" "}
                           <span
-                            className="inline-block w-5 h-5 rounded-full border border-gray-300"
+                            className="inline-block w-4 h-4 sm:w-5 sm:h-5 rounded-full border border-gray-300"
                             style={{
                               backgroundColor: COLOR_HEX[color?.name] || "#ccc",
                             }}
@@ -125,36 +135,42 @@ const CheckoutPage = () => {
                           </span>
                         </p>
 
-                        <div className="mt-3 flex items-center space-x-3">
+                        <div className="mt-2 sm:mt-3 flex items-center space-x-2 sm:space-x-3">
                           <button
                             onClick={() => updateQuantity(key, quantity - 1)}
                             aria-label="Decrease quantity"
-                            className="w-8 h-8 rounded border border-gray-300 text-lg font-bold text-gray-700 hover:bg-gray-100 transition"
+                            className="w-7 h-7 sm:w-8 sm:h-8 rounded border border-gray-300 text-lg font-bold text-gray-700 hover:bg-gray-100 transition"
                           >
                             −
                           </button>
-                          <span className="min-w-[24px] text-center font-semibold">
+                          <span className="min-w-[20px] sm:min-w-[24px] text-center font-semibold">
                             {quantity}
                           </span>
                           <button
                             onClick={() => updateQuantity(key, quantity + 1)}
                             aria-label="Increase quantity"
-                            className="w-8 h-8 rounded border border-gray-300 text-lg font-bold text-gray-700 hover:bg-gray-100 transition"
+                            className="w-7 h-7 sm:w-8 sm:h-8 rounded border border-gray-300 text-lg font-bold text-gray-700 hover:bg-gray-100 transition"
                           >
                             +
                           </button>
-                          
 
                           <button
                             onClick={() => removeItem(key)}
                             aria-label="Remove item"
-                            className="ml-4 text-red-600 font-bold text-xl hover:text-red-800 transition"
+                            className="ml-3 sm:ml-4 text-red-600 font-bold text-xl hover:text-red-800 transition"
                           >
                             ×
                           </button>
                         </div>
 
-                        <p className="mt-3 text-gray-800 font-medium">
+                        {/* --- Only total sqft --- */}
+                        {totalSqFt && (
+                          <div className="inline-block bg-gray-100 rounded px-3 py-1 mt-2 text-[12px] sm:text-xs font-semibold text-gray-700 border border-gray-200">
+                            Total: {totalSqFt.toFixed(3)} sq.ft
+                          </div>
+                        )}
+
+                        <p className="mt-2 sm:mt-3 text-gray-800 font-medium text-sm sm:text-base">
                           Price: {formatINR(price)} × {quantity} ={" "}
                           <span className="text-red-600 font-bold">
                             {formatINR(price * quantity)}
@@ -168,7 +184,7 @@ const CheckoutPage = () => {
             )}
 
             {cartArray.length > 0 && (
-              <footer className="mt-6 pt-4 border-t border-gray-200 flex justify-between items-center font-semibold text-lg">
+              <footer className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-gray-200 flex justify-between items-center font-semibold text-base sm:text-lg">
                 <span>Total:</span>
                 <span className="text-red-600">
                   {formatINR(
@@ -196,7 +212,16 @@ const CheckoutPage = () => {
           </section>
 
           {/* Right: Order Summary */}
-          <aside className="md:flex-[2] bg-white rounded-lg shadow-md p-6 sticky top-24 self-start min-w-[300px]">
+          <aside
+            className="w-full md:w-auto md:flex-[2] bg-white rounded-lg shadow-md p-3 sm:p-6
+             mt-6 md:mt-0
+             sticky md:top-24 self-start
+             min-w-[0] md:min-w-[300px]"
+            style={{
+              position: "static",
+              top: undefined,
+            }}
+          >
             <OrderSummary />
           </aside>
         </div>
@@ -206,5 +231,4 @@ const CheckoutPage = () => {
     </>
   );
 };
-
 export default CheckoutPage;
