@@ -15,7 +15,7 @@ const colorMap = {
   Chocolate: "#7B3F00",
 };
 
-const CartSidebar = ({ open, onClose, onOpenAuth }) => {
+const CartSidebar = ({ open, onClose, onOpenAuth = () => {} }) => {
   const {
     cartItems,
     products,
@@ -107,9 +107,21 @@ const CartSidebar = ({ open, onClose, onOpenAuth }) => {
             Logged in as: <strong>{userName}</strong> ({userPhone})
           </div>
         ) : (
-          <div className="px-5 py-3 border-b text-red-600 font-semibold flex flex-col gap-2">
-            <span>Please verify your phone to proceed.</span>
-          </div>
+         <div className="px-5 py-3 border-b text-red-600 font-semibold flex flex-col gap-2">
+  <span>Please verify your phone to proceed.</span>
+  <button
+  onClick={() => {
+    onClose(); // close sidebar
+    setTimeout(() => {
+      onOpenAuth(); // open AuthModal from Navbar
+    }, 300);
+  }}
+  className="w-fit text-white bg-[#e80808] hover:bg-red-700 transition px-4 py-1.5 text-sm font-semibold rounded-md"
+>
+  Verify Now
+</button>
+</div>
+
         )}
 
         <div className="p-5 overflow-y-auto flex-grow space-y-6">
@@ -177,7 +189,7 @@ const CartSidebar = ({ open, onClose, onOpenAuth }) => {
                       </button>
 
                      <div className="bg-gray-50 rounded-md shadow px-4 py-2 w-36 text-center select-none">
-  <div className="text-xs text-gray-500 mb-1">Per panel</div>
+  {/* <div className="text-xs text-gray-500 mb-1">Per panel</div> */}
   <div className="font-semibold text-lg text-gray-900">
     {totalPanelSqFt.toFixed(3)} sq.ft
   </div>

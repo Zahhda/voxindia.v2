@@ -199,7 +199,12 @@ export default function Navbar() {
         />
       )}
       {/* Cart Sidebar */}
-      <CartSidebar open={isCartOpen} onClose={() => setIsCartOpen(false)} />
+      <CartSidebar
+  open={isCartOpen}
+  onClose={() => setIsCartOpen(false)}
+  onOpenAuth={() => setShowAuthModal(true)} // ✅ THIS IS CRUCIAL
+/>
+
     </>
   );
 }
