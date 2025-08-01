@@ -1,6 +1,11 @@
-// app/api/order/create/route.js (add at top)
 import nodemailer from "nodemailer";
+import { NextResponse } from "next/server";
+import { getAuth } from "@clerk/nextjs/server";
+import connectDB from "@/lib/db";       // Your DB connect helper
+import Order from "@/models/Order";     // Your Order model
+import razorpay from "@/lib/razorpay"; // Your Razorpay instance
 
+// Configure Nodemailer transporter with Gmail (use app password or OAuth token)
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
@@ -9,23 +14,46 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// ...
-
 export async function POST(request) {
   try {
     await connectDB();
 
     const { userId } = getAuth(request);
-    if (!userId) return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+    if (!userId)
+      return NextResponse.json(
+        { success: false, message: "Unauthorized" },
+        { status: 401 }
+      );
 
     const body = await request.json();
-    const { address, items, paymentMethod } = body;
+    const { address, items, paymentMethod, totalAmount } = body;
 
-    // Validate as before...
+    // Basic validation example
+    if (
+      !address ||
+      !items ||
+      !Array.isArray(items) ||
+      items.length === 0 ||
+      !paymentMethod ||
+      !totalAmount
+    ) {
+      return NextResponse.json(
+        { success: false, message: "Invalid order data" },
+        { status: 400 }
+      );
+    }
 
-    // Calculate total amount as before...
+    // Ensure totalAmount is a number in rupees
+    const finalAmount = Number(totalAmount);
+    if (isNaN(finalAmount) || finalAmount <= 0) {
+      return NextResponse.json(
+        { success: false, message: "Invalid amount" },
+        { status: 400 }
+      );
+    }
 
     let order;
+
     if (paymentMethod === "cod") {
       order = await Order.create({
         userId,
@@ -36,11 +64,13 @@ export async function POST(request) {
         status: "Pending",
       });
     } else {
+      // Create Razorpay order - amount in paise
       const razorpayOrder = await razorpay.orders.create({
-        amount: finalAmount * 100,
+        amount: Math.round(finalAmount * 100), // Convert ₹ to paise safely
         currency: "INR",
         receipt: `rcpt_${Date.now()}`,
       });
+
       order = await Order.create({
         userId,
         address,
@@ -52,7 +82,7 @@ export async function POST(request) {
       });
     }
 
-    // Send confirmation email
+    // Send confirmation email asynchronously (do not block response)
     const mailOptions = {
       from: process.env.GMAIL_USER,
       to: address.email,
@@ -82,12 +112,15 @@ export async function POST(request) {
 
     return NextResponse.json({
       success: true,
-      message: "Order placed",
+      message: "Order placed successfully",
       order,
       razorpayOrderId: order.razorpayOrderId || null,
     });
   } catch (err) {
-    console.error(err);
-    return NextResponse.json({ success: false, message: err.message }, { status: 500 });
+    console.error("Order creation error:", err);
+    return NextResponse.json(
+      { success: false, message: err.message || "Server error" },
+      { status: 500 }
+    );
   }
 }
