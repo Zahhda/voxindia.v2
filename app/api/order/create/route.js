@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
 import connectDB from "@/lib/db";       // Your DB connect helper
 import Order from "@/models/Order";     // Your Order model
-import razorpay from "@/lib/razorpay"; // Your Razorpay instance
 
 // Configure Nodemailer transporter with Gmail (use app password or OAuth token)
 const transporter = nodemailer.createTransport({
