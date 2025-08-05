@@ -16,8 +16,9 @@ export async function POST(req) {
     }
 
     const verificationCheck = await client.verify
-      .services(serviceSid)
-      .verificationChecks.create({ to: phone, code: otp });
+      .v2.services(serviceSid) // ✅ fix "services is deprecated"
+      .verificationChecks
+      .create({ to: phone, code: otp });
 
     if (verificationCheck.status !== 'approved') {
       return NextResponse.json({ success: false, message: 'Invalid OTP' }, { status: 400 });

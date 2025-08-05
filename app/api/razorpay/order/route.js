@@ -12,7 +12,7 @@ export async function POST(req) {
   });
 
   const options = {
-    amount: body.amount * 100, // amount in paisa
+    amount: body.amount, // amount in paisa
     currency: "INR",
     receipt: `receipt_order_${Math.random().toString().slice(2, 8)}`,
   };

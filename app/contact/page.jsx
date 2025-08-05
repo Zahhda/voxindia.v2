@@ -1,24 +1,53 @@
-// app/contact/page.jsx
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useRouter } from "next/navigation";
 
 const ContactPage = () => {
   const [form, setForm] = useState({ name: "", email: "", message: "" });
+  const [popup, setPopup] = useState({ visible: false, message: "" });
   const router = useRouter();
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const closePopup = () => {
+    setPopup({ visible: false, message: "" });
+  };
+
+  // Prevent background scroll when popup is visible
+  useEffect(() => {
+    if (popup.visible) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+  }, [popup.visible]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Placeholder for backend integration (e.g., send email via Gmail SMTP or API)
-    alert("Thank you for contacting us!");
-    setForm({ name: "", email: "", message: "" });
-    router.push("/thank-you"); // Optional redirect or remove to stay on same page
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        // Redirect immediately on success
+        setForm({ name: "", email: "", message: "" });
+        router.push("/thank-you");
+      } else {
+        // Show popup on failure
+        setPopup({ visible: true, message: "Failed to send message: " + data.message });
+      }
+    } catch (err) {
+      setPopup({ visible: true, message: "Error sending message: " + err.message });
+    }
   };
 
   return (
@@ -33,9 +62,7 @@ const ContactPage = () => {
 
       <section className="min-h-screen px-6 py-16 bg-gray-50 text-gray-900">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl md:text-4xl font-extrabold text-center mb-12">
-            Contact Us
-          </h1>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-center mb-12">Contact Us</h1>
 
           <div className="grid md:grid-cols-2 gap-10">
             {/* Contact Form */}
@@ -44,9 +71,7 @@ const ContactPage = () => {
               className="space-y-6 bg-white p-8 shadow-md rounded-lg"
             >
               <div>
-                <label className="block text-sm font-semibold mb-2">
-                  Your Name
-                </label>
+                <label className="block text-sm font-semibold mb-2">Your Name</label>
                 <input
                   type="text"
                   name="name"
@@ -59,9 +84,7 @@ const ContactPage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2">
-                  Your Email
-                </label>
+                <label className="block text-sm font-semibold mb-2">Your Email</label>
                 <input
                   type="email"
                   name="email"
@@ -74,9 +97,7 @@ const ContactPage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-2">
-                  Message
-                </label>
+                <label className="block text-sm font-semibold mb-2">Message</label>
                 <textarea
                   name="message"
                   value={form.message}
@@ -137,6 +158,27 @@ const ContactPage = () => {
       </section>
 
       <Footer />
+
+      {/* Failure Popup Modal */}
+      {popup.visible && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"
+          onClick={closePopup}
+        >
+          <div
+            className="bg-white p-6 rounded-lg max-w-md w-full mx-4 text-center shadow-lg border-4 border-[#e80808]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-lg font-semibold mb-4 text-[#e80808]">{popup.message}</p>
+            <button
+              onClick={closePopup}
+              className="px-4 py-2 bg-[#e80808] text-white rounded hover:bg-[#c10606] transition font-semibold"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 };

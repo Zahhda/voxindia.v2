@@ -15,7 +15,7 @@ const OrderPlaced = () => {
     localStorage.setItem('last_order_id', newOrderId.toString())
 
     const timer = setTimeout(() => {
-      router.push('/my-orders')
+      router.push('/checkout')
     }, 9000)
 
     return () => clearTimeout(timer)

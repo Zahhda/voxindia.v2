@@ -1,10 +1,10 @@
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
-  _id: { type: String, required: true }, // use phone as _id
-  name: { type: String }, // optional now
-  email: { type: String, required: true, unique: true }, // generated like number@voxindia.co
-  imageUrl: { type: String, default: "" }, // optional
+  _id: { type: String, required: true }, // phone number is the ID
+  name: { type: String },
+  email: { type: String, required: true, unique: true },
+  imageUrl: { type: String, default: "" },
   cartItems: { type: Object, default: {} },
 }, { minimize: false });
 

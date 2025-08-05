@@ -1,33 +1,16 @@
-// models/Order.js
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
-const OrderSchema = new mongoose.Schema(
-  {
-    userId: { type: String, required: true },
-    address: {
-      fullName: String,
-      phoneNumber: String,
-      email: String,      // add email
-      gstin: String,      // add gstin
-      pincode: String,
-      area: String,
-      city: String,
-      state: String,
-    },
-    items: [
-      {
-        productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
-        variantId: String,
-        colorName: String,
-        quantity: Number,
-      },
-    ],
-    amount: Number,
-    paymentMethod: { type: String, enum: ["razorpay", "cod"] },
-    razorpayOrderId: String,
-    status: { type: String, default: "Pending" },
-  },
-  { timestamps: true }
-);
+const OrderSchema = new mongoose.Schema({
+  userId: { type: String, required: false, default: null }, // ✅ fix here
+  address: { type: Object, required: true },
+  items: [{ product: String, quantity: Number }],
+  paymentMethod: { type: String, required: true },
+  amount: { type: Number, required: true },
+  razorpayOrderId: String,
+  razorpayPaymentId: String,
+  razorpaySignature: String,
+  status: { type: String, default: "Pending" },
+  createdAt: { type: Date, default: Date.now },
+});
 
 export default mongoose.models.Order || mongoose.model("Order", OrderSchema);

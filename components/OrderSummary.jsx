@@ -43,7 +43,7 @@ export default function OrderSummary() {
         const token = await getToken();
         const phone = last?.phoneNumber || "";
         const res = await fetch(
-          `/api/user/addresses?phone=${encodeURIComponent(phone)}`,
+          `/api/user/address?phone=${encodeURIComponent(phone)}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         const data = await res.json();
@@ -173,27 +173,30 @@ export default function OrderSummary() {
           const { razorpay_payment_id, razorpay_order_id, razorpay_signature } =
             response;
 
-          const confirm = await axios.post(
-            "/api/order/create",
-            {
-              address: selected._id,
-              items: cartItemsArray,
-              payment_id: razorpay_payment_id,
-              razorpay_order_id,
-              signature: razorpay_signature,
-            },
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          );
+        const confirm = await axios.post(
+  "/api/order/create",
+  {
+    address: selected, // ✅ Pass the full address object (not just the ID)
+    items: cartItemsArray,
+    paymentMethod: "razorpay", // ✅ Include payment method explicitly
+    totalAmount: getCartAmount() + Math.floor(getCartAmount() * 0.02), // ✅ Total amount in rupees including 2% fee
+    razorpay_order_id,
+    razorpay_payment_id,
+    razorpay_signature,
+  },
+  {
+    headers: { Authorization: `Bearer ${token}` },
+  }
+);
 
-          if (confirm.data.success) {
-            toast.success(confirm.data.message);
-            setCartItems({});
-            router.push("/order-placed");
-          } else {
-            toast.error("Payment verified but order failed");
-          }
+if (confirm.data.success) {
+  toast.success("Order placed successfully!");
+  setCartItems({});
+  router.push("/order-placed");
+} else {
+  toast.error(confirm.data.message || "Order placement failed!");
+}
+
         },
         theme: { color: "#f40000" },
         prefill: {

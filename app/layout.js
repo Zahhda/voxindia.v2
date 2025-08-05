@@ -10,12 +10,16 @@ const outfit = Outfit({ subsets: ["latin"], weight: ["300", "400", "500"] });
 export const metadata = {
   title: "Linerio Slat Panels | Premium Wall & Ceiling Solutions",
   description: "E-Commerce with Next.js ",
+  other: {
+    "google-site-verification": "Y4zlnF9-BeT-wE7d2dLVJLt3DRPHw27A0HORG-3cxPg",
+  },
 };
 
 export default function RootLayout({ children }) {
   return (
     <ClerkProvider>
       <html lang="en" className={outfit.className}>
+        <head />
         <body className="antialiased text-gray-700">
           {/* ✅ GA4 */}
           <Script
@@ -87,6 +91,7 @@ export default function RootLayout({ children }) {
               width="1"
               style={{ display: "none" }}
               src="https://www.facebook.com/tr?id=4828999520519913&ev=PageView&noscript=1"
+              alt=""
             />
           </noscript>
 
