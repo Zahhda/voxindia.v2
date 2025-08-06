@@ -273,12 +273,15 @@ export default function ProductPage() {
     setQuantity(1);
     const img = currentColors[i]?.image;
     setMainImage(img || productData.image[0]);
+
     if (thumbnailsRef.current) {
       const btns = thumbnailsRef.current.children;
       const btn = btns[i];
       if (btn) {
-        const center = btn.offsetLeft + btn.offsetWidth / 2 - thumbnailsRef.current.clientWidth / 2;
-        thumbnailsRef.current.scrollTo({ left: center, behavior: "smooth" });
+        const container = thumbnailsRef.current;
+        const scrollLeft =
+          btn.offsetLeft + btn.offsetWidth / 2 - container.clientWidth / 2;
+        container.scrollTo({ left: scrollLeft, behavior: "smooth" });
       }
     }
   };
@@ -290,6 +293,17 @@ export default function ProductPage() {
   const perSqFt = Number(productData.perSqFtPrice);
   const perPanel = Number(productData.perPanelSqFt);
   const totalPanelSqFt = perPanel * quantity;
+
+  // Scroll thumbnails by 100px when arrows clicked
+  const scrollThumbnails = (direction) => {
+    if (!thumbnailsRef.current) return;
+    const scrollAmount = 100;
+    if (direction === "left") {
+      thumbnailsRef.current.scrollBy({ left: -scrollAmount, behavior: "smooth" });
+    } else {
+      thumbnailsRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+    }
+  };
 
   return (
     <>
@@ -316,29 +330,73 @@ export default function ProductPage() {
                 </div>
               )}
             </div>
-            <div
-              ref={thumbnailsRef}
-              className="flex space-x-4 mt-4 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100"
-            >
-              {combinedImages.map((img, i) => (
-                <button
-                  key={i}
-                  onClick={() => setMainImage(img)}
-                  type="button"
-                  className={`w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 cursor-pointer border-2 transition-transform hover:scale-105 ${
-                    mainImage === img ? "border-orange-500" : "border-transparent"
-                  }`}
+
+            {/* Thumbnails row with navigation buttons */}
+            <div className="relative mt-4 flex items-center">
+              {/* Left arrow */}
+              <button
+                onClick={() => scrollThumbnails("left")}
+                aria-label="Scroll thumbnails left"
+                className="z-20 absolute left-0 bg-white rounded-full shadow-md p-1 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ top: "50%", transform: "translateY(-50%)" }}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6 text-gray-700"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
                 >
-                  <Image
-                    src={img}
-                    alt={`Thumb ${i}`}
-                    width={80}
-                    height={80}
-                    className="object-contain bg-white"
-                    sizes="80px"
-                  />
-                </button>
-              ))}
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+
+              {/* Thumbnails container */}
+              <div
+                ref={thumbnailsRef}
+                className="flex overflow-x-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 scroll-smooth space-x-4 px-10"
+                style={{ scrollBehavior: "smooth" }}
+              >
+                {combinedImages.map((img, i) => (
+                  <button
+                    key={i}
+                    onClick={() => selectColor(i)}
+                    type="button"
+                    className={`w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 cursor-pointer border-2 transition-transform hover:scale-105 ${
+                      mainImage === img ? "border-orange-500" : "border-transparent"
+                    }`}
+                  >
+                    <Image
+                      src={img}
+                      alt={`Thumb ${i}`}
+                      width={80}
+                      height={80}
+                      className="object-contain bg-white"
+                      sizes="80px"
+                    />
+                  </button>
+                ))}
+              </div>
+
+              {/* Right arrow */}
+              <button
+                onClick={() => scrollThumbnails("right")}
+                aria-label="Scroll thumbnails right"
+                className="z-20 absolute right-0 bg-white rounded-full shadow-md p-1 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ top: "50%", transform: "translateY(-50%)" }}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6 text-gray-700"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
             </div>
           </div>
 
