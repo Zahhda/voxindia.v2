@@ -2,15 +2,17 @@ import { NextResponse } from "next/server";
 import connectDB from "@/config/db";
 import Product from "@/models/Product";
 
+function generateSlug(name) {
+  return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+}
+
 export async function POST(req) {
   try {
     await connectDB();
-
     const body = await req.json();
 
     const {
       name,
-      slug,
       description,
       category,
       price,
@@ -21,8 +23,16 @@ export async function POST(req) {
       variants
     } = body;
 
-    // ⚠️ Static or dummy userId just to satisfy schema
-    const userId = "admin"; // Replace with actual admin ID if needed
+    let slug = generateSlug(name);
+    let existingProduct = await Product.findOne({ slug });
+    let counter = 1;
+
+    while (existingProduct) {
+      slug = `${generateSlug(name)}-${counter++}`;
+      existingProduct = await Product.findOne({ slug });
+    }
+
+    const userId = body.userId || "admin"; // handle user correctly based on session/auth.
 
     const newProduct = await Product.create({
       userId,
@@ -30,12 +40,12 @@ export async function POST(req) {
       slug,
       description,
       category,
-      price: Number(price),
-      offerPrice: Number(offerPrice),
-      perSqFtPrice: Number(perSqFtPrice),
-      perPanelSqFt: Number(perPanelSqFt),
+      price,
+      offerPrice,
+      perSqFtPrice,
+      perPanelSqFt,
       image: imageUrls,
-      variants,
+      variants
     });
 
     return NextResponse.json({
@@ -44,9 +54,6 @@ export async function POST(req) {
       slug: newProduct.slug,
     });
   } catch (error) {
-    return NextResponse.json(
-      { success: false, message: error.message || "Failed to add product" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }

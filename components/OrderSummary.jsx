@@ -130,8 +130,11 @@ export default function OrderSummary() {
     try {
       if (!selected) return toast.error("Please select an address");
 
+      // Updated: map cartItems including variant and color
       let cartItemsArray = Object.keys(cartItems).map((key) => ({
-        product: key,
+        productId: cartItems[key]._id || key,  // Ensure product ObjectId
+        variant: cartItems[key].variant || "", // Variant info (if any)
+        color: cartItems[key].color || "",     // Color info (if any)
         quantity: cartItems[key]?.quantity || 0,
       }));
 
@@ -170,33 +173,35 @@ export default function OrderSummary() {
         description: "Order Payment",
         order_id: razorpayOrder.data.order.id,
         handler: async function (response) {
-          const { razorpay_payment_id, razorpay_order_id, razorpay_signature } =
-            response;
+          const {
+            razorpay_payment_id,
+            razorpay_order_id,
+            razorpay_signature,
+          } = response;
 
-        const confirm = await axios.post(
-  "/api/order/create",
-  {
-    address: selected, // ✅ Pass the full address object (not just the ID)
-    items: cartItemsArray,
-    paymentMethod: "razorpay", // ✅ Include payment method explicitly
-    totalAmount: getCartAmount() + Math.floor(getCartAmount() * 0.02), // ✅ Total amount in rupees including 2% fee
-    razorpay_order_id,
-    razorpay_payment_id,
-    razorpay_signature,
-  },
-  {
-    headers: { Authorization: `Bearer ${token}` },
-  }
-);
+          const confirm = await axios.post(
+            "/api/order/create",
+            {
+              address: selected, // full address object
+              items: cartItemsArray, // full product info including variant & color
+              paymentMethod: "razorpay",
+              totalAmount,
+              razorpay_order_id,
+              razorpay_payment_id,
+              razorpay_signature,
+            },
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
 
-if (confirm.data.success) {
-  toast.success("Order placed successfully!");
-  setCartItems({});
-  router.push("/order-placed");
-} else {
-  toast.error(confirm.data.message || "Order placement failed!");
-}
-
+          if (confirm.data.success) {
+            toast.success("Order placed successfully!");
+            setCartItems({});
+            router.push("/order-placed");
+          } else {
+            toast.error(confirm.data.message || "Order placement failed!");
+          }
         },
         theme: { color: "#f40000" },
         prefill: {

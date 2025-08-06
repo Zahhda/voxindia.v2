@@ -1,27 +1,28 @@
-import connectDB from "@/config/db";
-import Address from "@/models/Address";
-import Order from "@/models/Order";
+import connectDB from "@/lib/db";
 import Product from "@/models/Product";
-import { getAuth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
+export async function GET(req) {
+  await connectDB();
+  const { searchParams } = new URL(req.url);
+  const slug = searchParams.get("slug");
 
+  if (slug) {
+    const product = await Product.findOne({ slug });
 
-export async function GET(request) {
-    try {
-        
-        const {userId} = getAuth(request)
-
-        await connectDB()
-
-        await Address.length
-        await Product.length
-
-        const orders = await Order.find({userId}).populate('address items.product')
-
-        return NextResponse.json({ success:true, orders })
-
-    } catch (error) {
-        return NextResponse.json({ success:false, message:error.message })
+    if (!product) {
+      return NextResponse.json(
+        { success: false, message: "Product not found" },
+        { status: 404 }
+      );
     }
+
+    return NextResponse.json({
+      success: true,
+      product,
+    });
+  }
+
+  const products = await Product.find();
+  return NextResponse.json({ success: true, products });
 }

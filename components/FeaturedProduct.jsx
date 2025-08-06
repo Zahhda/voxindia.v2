@@ -8,7 +8,7 @@ const collections = [
     subtitle: "Narrow lamellas for a taller, cozier space",
     colors: ["White", "Grey", "Anthracite", "Black", "Mocca", "Natural", "Natural Black"],
     image: "/collections/s-line.png",
-    link: "/product/688540e1fdbb8814f789a1df", // S-Line link
+    link: "/product/vox-s-line-wall-panel", // S-Line link
   },
   {
     id: 2,
@@ -16,7 +16,7 @@ const collections = [
     subtitle: "Medium-width lamellas with extra depth",
     colors: ["White", "Grey", "Anthracite", "Black", "Mocca", "Natural", "Natural Black", "Chocolate"],
     image: "/collections/m-line.png",
-    link: "/product/6885b1eddf36d2068fa78826", // M-Line link added
+    link: "/product/vox-m-line-wall-panel", // M-Line link added
   },
   {
     id: 3,
@@ -24,7 +24,7 @@ const collections = [
     subtitle: "Wide lamellas for bold visual impact",
     colors: ["White", "Grey", "Anthracite", "Mocca", "Natural", "Chocolate"],
     image: "/collections/l-line.png",
-    link: "/product/68854558fdbb8814f789aaa4", // L-Line link added
+    link: "/product/vox-l-line-wall-panel", // L-Line link added
   },
 ];
 

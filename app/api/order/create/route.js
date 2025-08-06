@@ -1,77 +1,100 @@
-import nodemailer from "nodemailer";
+// app/api/order/create/route.js
+
 import { NextResponse } from "next/server";
 import { getAuth } from "@clerk/nextjs/server";
 import connectDB from "@/lib/db";
 import Order from "@/models/Order";
-
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASS,
-  },
-});
+import mongoose from "mongoose";
 
 export async function POST(request) {
   try {
     await connectDB();
 
-    // --- Guest-friendly auth ---
+    // — Try to get Clerk userId, fall back to null —
     let userId = null;
     try {
-      const auth = getAuth(request);
-      userId = auth?.userId || null;
-    } catch (e) {
+      userId = getAuth(request).userId || null;
+    } catch {
       userId = null;
     }
 
-    const body = await request.json();
-    const { address, items, paymentMethod, totalAmount, razorpay_order_id, razorpay_payment_id, razorpay_signature } = body;
+    // — Parse the JSON body —
+    const {
+      address,
+      items,
+      paymentMethod,
+      totalAmount,
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+    } = await request.json();
 
-    // Basic validation
-    if (!address || !items || !Array.isArray(items) || items.length === 0 || !paymentMethod || !totalAmount) {
+    // — Basic sanity checks —
+    if (
+      !address ||
+      !Array.isArray(items) ||
+      items.length === 0 ||
+      !paymentMethod ||
+      !totalAmount
+    ) {
       return NextResponse.json(
         { success: false, message: "Invalid order data" },
         { status: 400 }
       );
     }
 
-    const finalAmount = Number(totalAmount);
-    if (isNaN(finalAmount) || finalAmount <= 0) {
+    // — Build your items array for Mongo —
+    const parsedItems = items.map((item) => {
+      // item.product may be either:
+      //   "someMongoId"            (if front-end already split)
+      // or
+      //   "someMongoId|variantId|colorName"
+      //
+      // We'll split on '|' and pull them apart:
+      const raw = item.product || item.productId || "";
+      const [prodId, variantId = "", colorName = ""] = raw.split("|");
+
+      // — Validate the real prodId —
+      if (!mongoose.Types.ObjectId.isValid(prodId)) {
+        throw new Error(`Invalid product ID: ${prodId}`);
+      }
+
+      return {
+        product: prodId,    // Mongoose will cast this to ObjectId
+        variant: variantId,
+        color: colorName,
+        quantity: item.quantity,
+      };
+    });
+
+    // — Validate amount —
+    const amount = Number(totalAmount);
+    if (isNaN(amount) || amount <= 0) {
       return NextResponse.json(
         { success: false, message: "Invalid amount" },
         { status: 400 }
       );
     }
 
-    let order;
+    // — Assemble the order document —
+    const orderData = {
+      userId,
+      address,
+      items: parsedItems,
+      paymentMethod,
+      amount,
+      status: paymentMethod === "cod" ? "Pending" : "Paid",
+    };
 
-    if (paymentMethod === "cod") {
-      order = await Order.create({
-        userId,
-        address,
-        items,
-        paymentMethod,
-        amount: finalAmount,
-        status: "Pending",
-      });
-    } else {
-      // Just save the Razorpay payment data, do not create new order at Razorpay!
-      order = await Order.create({
-        userId,
-        address,
-        items,
-        paymentMethod,
-        amount: finalAmount,
-        razorpayOrderId: razorpay_order_id,
-        razorpayPaymentId: razorpay_payment_id,
-        razorpaySignature: razorpay_signature,
-        status: "Paid",
-      });
+    // — If it's a Razorpay payment, include those fields —
+    if (paymentMethod !== "cod") {
+      orderData.razorpayOrderId   = razorpay_order_id;
+      orderData.razorpayPaymentId = razorpay_payment_id;
+      orderData.razorpaySignature = razorpay_signature;
     }
 
-    // Send confirmation email (as before)
-    // ...your mailOptions and transporter.sendMail() code here...
+    // — Create & save —
+    const order = await Order.create(orderData);
 
     return NextResponse.json({
       success: true,

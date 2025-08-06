@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
 import React, { useEffect, useState, useRef } from "react";
-import Image from "next/image";
 import { useParams } from "next/navigation";
+import Image from "next/image";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Loading from "@/components/Loading";
@@ -22,20 +22,10 @@ const COLOR_HEX = {
 
 const WhyChooseUs = () => {
   const items = [
-    {
-      icon: <Wrench className="w-8 h-8 mb-2 text-black group-hover:scale-110 transition-transform" />,
-      label: "Free Installation",
-    },
-    {
-      icon: <Truck className="w-8 h-8 mb-2 text-black group-hover:scale-110 transition-transform" />,
-      label: "Free Shipping PAN India",
-    },
-    {
-      icon: <ShieldCheck className="w-8 h-8 mb-2 text-black group-hover:scale-110 transition-transform" />,
-      label: "2 Years Warranty",
-    },
+    { icon: <Wrench className="w-8 h-8 mb-2 text-black group-hover:scale-110 transition-transform" />, label: "Free Installation" },
+    { icon: <Truck className="w-8 h-8 mb-2 text-black group-hover:scale-110 transition-transform" />, label: "Free Shipping PAN India" },
+    { icon: <ShieldCheck className="w-8 h-8 mb-2 text-black group-hover:scale-110 transition-transform" />, label: "2 Years Warranty" },
   ];
-
   return (
     <div className="mt-10 border-t pt-6">
       <h2 className="text-2xl font-bold mb-6 text-center">Why Choose Us</h2>
@@ -52,7 +42,7 @@ const WhyChooseUs = () => {
 };
 
 const accordionData = [
-  {
+   {
     id: 1,
     question: "What are VOX Linerio Slat Panels?",
     answer:
@@ -178,33 +168,29 @@ const Accordion = () => {
   const [activeIndex, setActiveIndex] = useState(null);
   const [visibleCount, setVisibleCount] = useState(6);
 
-  const toggleAccordion = (index) => {
-    setActiveIndex(activeIndex === index ? null : index);
-
-    if (index >= visibleCount - 3 && visibleCount < accordionData.length) {
+  const toggleAccordion = (i) => {
+    setActiveIndex(activeIndex === i ? null : i);
+    if (i >= visibleCount - 3 && visibleCount < accordionData.length) {
       setVisibleCount(Math.min(visibleCount + 3, accordionData.length));
     }
   };
 
-  const visibleData = accordionData.slice(0, visibleCount);
-
   return (
     <div className="max-w-full mt-10 space-y-4 px-4 md:px-8 lg:px-16">
-      {visibleData.map((item, index) => (
+      {accordionData.slice(0, visibleCount).map((item, i) => (
         <div key={item.id} className="border-b border-gray-200 w-full">
           <button
-            onClick={() => toggleAccordion(index)}
+            onClick={() => toggleAccordion(i)}
             className="flex justify-between w-full p-4 bg-gray-100 hover:bg-gray-200 text-left text-lg font-medium text-gray-800 transition-all"
-            type="button"
           >
             {item.question}
-            {activeIndex === index ? (
+            {activeIndex === i ? (
               <ChevronUp className="w-5 h-5" />
             ) : (
               <ChevronDown className="w-5 h-5" />
             )}
           </button>
-          {activeIndex === index && (
+          {activeIndex === i && (
             <div className="p-4 text-gray-600 bg-white whitespace-pre-line transition-all duration-300">
               {item.answer}
             </div>
@@ -216,43 +202,51 @@ const Accordion = () => {
 };
 
 export default function ProductPage() {
-  const { id } = useParams();
-  const { products, addToCart } = useAppContext();
+  const { slug } = useParams();
+  const { addToCart } = useAppContext();
 
   const [productData, setProductData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [selectedVariantIndex, setSelectedVariantIndex] = useState(0);
   const [selectedColorIndex, setSelectedColorIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [mainImage, setMainImage] = useState("");
   const [buyMode, setBuyMode] = useState("panel");
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
-
   const thumbnailsRef = useRef(null);
 
   useEffect(() => {
-    if (products && products.length) {
-      const product = products.find((p) => p._id === id);
-      setProductData(product || null);
-      const firstColorImage = product?.variants?.[0]?.colors?.[0]?.image;
-      setMainImage(firstColorImage || product?.image?.[0] || "");
-    }
-  }, [id, products]);
+    if (!slug) return;
+    setLoading(true);
+    fetch(`/api/product/list?slug=${encodeURIComponent(slug)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.product) {
+          setProductData(data.product);
+          const firstColor = data.product.variants?.[0]?.colors?.[0]?.image;
+          setMainImage(firstColor || data.product.image?.[0] || "");
+        } else {
+          setError("Product not found");
+        }
+      })
+      .catch(() => setError("Failed to load product"))
+      .finally(() => setLoading(false));
+  }, [slug]);
 
-  if (!productData) return <Loading />;
+  if (loading) return <Loading />;
+  if (error) return <div className="p-10 text-center text-red-600">{error}</div>;
 
   const variants = productData.variants || [];
-  const currentVariant = variants[selectedVariantIndex] || null;
-  const currentColors = currentVariant?.colors || [];
-  const currentColor = currentColors[selectedColorIndex] || null;
-
+  const currentVariant = variants[selectedVariantIndex] || {};
+  const currentColors = currentVariant.colors || [];
+  const currentColor = currentColors[selectedColorIndex] || {};
   const basePrice =
-    Number(currentColor?.price) ||
+    Number(currentColor.price) ||
     Number(productData.offerPrice) ||
     Number(productData.price) ||
     0;
-
   const displayPrice = buyMode === "box" ? basePrice * 6 : basePrice;
-
   const discountPercent =
     productData.price &&
     productData.offerPrice &&
@@ -261,46 +255,36 @@ export default function ProductPage() {
           ((productData.price - productData.offerPrice) / productData.price) * 100
         )
       : 0;
+  const variantColorImages = variants.flatMap((v) => v.colors).map((c) => c.image);
+  const combinedImages = Array.from(
+    new Set([...(productData.image || []), ...variantColorImages])
+  );
 
-  const variantColorImages = variants
-    .flatMap((variant) => variant.colors)
-    .map((color) => color.image)
-    .filter(Boolean);
-
-  const mainImages = productData.image || [];
-  const combinedImages = Array.from(new Set([...mainImages, ...variantColorImages]));
-
-  const selectVariant = (index) => {
-    setSelectedVariantIndex(index);
+  const selectVariant = (i) => {
+    setSelectedVariantIndex(i);
     setSelectedColorIndex(0);
     setQuantity(1);
-    const defaultColorImage = variants[index]?.colors?.[0]?.image;
-    setMainImage(defaultColorImage || productData.image?.[0] || "");
+    const img = variants[i].colors?.[0]?.image;
+    setMainImage(img || productData.image[0]);
   };
 
-  const selectColor = (index) => {
-    setSelectedColorIndex(index);
+  const selectColor = (i) => {
+    setSelectedColorIndex(i);
     setQuantity(1);
-    const colorImage = currentColors[index]?.image;
-    setMainImage(colorImage || productData.image?.[0] || "");
-
-    // Smooth scroll thumbnail container horizontally only — no page jump
+    const img = currentColors[i]?.image;
+    setMainImage(img || productData.image[0]);
     if (thumbnailsRef.current) {
-      const container = thumbnailsRef.current;
-      const buttons = container.children;
-      const button = buttons[index];
-      if (button) {
-        const buttonCenter = button.offsetLeft + button.offsetWidth / 2;
-        const containerCenter = container.clientWidth / 2;
-        const scrollTo = buttonCenter - containerCenter;
-        container.scrollTo({ left: scrollTo, behavior: "smooth" });
+      const btns = thumbnailsRef.current.children;
+      const btn = btns[i];
+      if (btn) {
+        const center = btn.offsetLeft + btn.offsetWidth / 2 - thumbnailsRef.current.clientWidth / 2;
+        thumbnailsRef.current.scrollTo({ left: center, behavior: "smooth" });
       }
     }
   };
 
   const decrementQty = () => setQuantity((q) => Math.max(1, q - 1));
   const incrementQty = () => setQuantity((q) => q + 1);
-
   const toggleLightbox = () => setIsLightboxOpen((v) => !v);
 
   const perSqFt = Number(productData.perSqFtPrice);
@@ -312,7 +296,6 @@ export default function ProductPage() {
       <Navbar />
       <div className="px-6 md:px-16 lg:px-2 pt-14 space-y-10 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
-          {/* Images */}
           <div>
             <div
               onClick={toggleLightbox}
@@ -333,77 +316,64 @@ export default function ProductPage() {
                 </div>
               )}
             </div>
-
             <div
               ref={thumbnailsRef}
               className="flex space-x-4 mt-4 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100"
-              style={{ scrollbarWidth: "thin", scrollbarColor: "#9CA3AF #F3F4F6" }}
             >
-              {combinedImages.map((img, idx) => (
+              {combinedImages.map((img, i) => (
                 <button
-                  key={idx}
+                  key={i}
                   onClick={() => setMainImage(img)}
-                  className={`w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 cursor-pointer border-2 transition-transform hover:scale-105 focus:outline-none ${
+                  type="button"
+                  className={`w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 cursor-pointer border-2 transition-transform hover:scale-105 ${
                     mainImage === img ? "border-orange-500" : "border-transparent"
                   }`}
-                  type="button"
                 >
                   <Image
                     src={img}
-                    alt={`Thumb ${idx}`}
+                    alt={`Thumb ${i}`}
                     width={80}
                     height={80}
                     className="object-contain bg-white"
                     sizes="80px"
-                    priority={mainImage === img}
                   />
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Details */}
           <div className="flex flex-col">
             <h1 className="text-4xl font-semibold">{productData.name}</h1>
             <p className="text-lg text-gray-500 mb-4">
-              Color: {currentColor?.name ?? "N/A"}
+              Color: {currentColor.name || "N/A"}
             </p>
-
-            {/* Price and Discounts */}
             <div className="flex items-center space-x-4 mb-8">
               <span className="text-3xl font-semibold">₹{displayPrice.toFixed(2)}</span>
               <span className="bg-red-600 text-white px-2 py-1 rounded text-sm font-semibold select-none">
-                5% OFF
+                {discountPercent > 0 ? `${discountPercent}% OFF` : "5% OFF"}
               </span>
               {discountPercent > 0 && (
-                <>
-                  <span className="line-through text-lg text-gray-500">
-                    ₹{productData.price.toFixed(2)}
-                  </span>
-                  <span className="bg-red-600 text-white px-2 py-1 rounded text-sm">
-                    {discountPercent}% OFF
-                  </span>
-                </>
+                <span className="line-through text-lg text-gray-500">
+                  ₹{productData.price.toFixed(2)}
+                </span>
               )}
             </div>
 
-            {/* Per sq.ft and per panel */}
             <div className="grid grid-cols-2 gap-4 mb-8">
-              <div className="bg-gray-50 p-4 rounded shadow text-center flex flex-col items-center justify-center">
+              <div className="bg-gray-50 p-4 rounded shadow text-center">
                 <div className="text-xs text-gray-600 mb-1">Per sq.ft</div>
-                <div className="font-semibold text-lg flex items-center gap-2">
+                <div className="font-semibold text-lg">
                   ₹{!isNaN(perSqFt) ? perSqFt.toFixed(2) : "N/A"}
                 </div>
               </div>
-              <div className="bg-gray-50 p-4 rounded shadow text-center flex flex-col items-center justify-center">
+              <div className="bg-gray-50 p-4 rounded shadow text-center">
                 <div className="text-xs text-gray-600 mb-1">Per panel</div>
-                <div className="font-semibold text-lg flex items-center gap-2">
-                  {!isNaN(perPanel) ? perPanel.toFixed(3) + " sq.ft" : "N/A sq.ft"}
+                <div className="font-semibold text-lg">
+                  {!isNaN(perPanel) ? `${perPanel.toFixed(3)} sq.ft` : "N/A"}
                 </div>
               </div>
             </div>
 
-            {/* Select Mode */}
             <div className="flex items-center space-x-4 mb-4">
               <span className="text-sm font-medium">Select Mode:</span>
               <button
@@ -416,44 +386,40 @@ export default function ProductPage() {
               </button>
             </div>
 
-            {/* Variants */}
             <div className="flex space-x-4 mb-6">
-              {variants.map((variant, idx) => (
+              {variants.map((v, i) => (
                 <button
-                  key={idx}
-                  onClick={() => selectVariant(idx)}
+                  key={i}
+                  onClick={() => selectVariant(i)}
                   className={`py-2 px-4 border rounded-md font-semibold ${
-                    selectedVariantIndex === idx
+                    selectedVariantIndex === i
                       ? "bg-black text-white"
                       : "bg-white text-gray-700 hover:bg-gray-100"
                   }`}
                 >
-                  {variant.name}
+                  {v.name}
                 </button>
               ))}
             </div>
 
-            {/* Colors */}
             <div className="flex space-x-4 mb-6 items-center">
               <span className="font-semibold mr-4">Color:</span>
-              {currentColors.map((color, idx) => (
+              {currentColors.map((c, i) => (
                 <button
-                  key={idx}
-                  onClick={() => selectColor(idx)}
-                  title={color.name}
+                  key={i}
+                  onClick={() => selectColor(i)}
+                  title={c.name}
                   className={`w-10 h-10 rounded-full border-2 border-black flex items-center justify-center cursor-pointer ${
-                    selectedColorIndex === idx ? "ring-2 ring-blue-600" : ""
+                    selectedColorIndex === i ? "ring-2 ring-blue-600" : ""
                   }`}
-                  style={{ backgroundColor: COLOR_HEX[color.name] || "#ccc" }}
+                  style={{ backgroundColor: COLOR_HEX[c.name] || "#ccc" }}
                 >
                   <div className="w-6 h-6 rounded-full" />
                 </button>
               ))}
             </div>
 
-            {/* Quantity and Per Panel SqFt Box */}
             <div className="flex items-center space-x-6 mb-8">
-              {/* Quantity controls */}
               <div className="flex items-center space-x-4">
                 <span className="font-semibold">Quantity:</span>
                 <button
@@ -470,25 +436,18 @@ export default function ProductPage() {
                   +
                 </button>
               </div>
-
-              {/* Per Panel SqFt × Quantity */}
-              <div className="bg-gray-50 rounded-md shadow px-4 py-2 w-36 text-center select-none">
-  {/* <div className="text-xs text-gray-500 mb-1">Per panel</div> */}
-  <div className="font-semibold text-lg text-gray-900">
-    {totalPanelSqFt.toFixed(3)} sq.ft
-  </div>
-</div>
-
+              <div className="bg-gray-50 rounded-md shadow px-4 py-2 w-36 text-center">
+                <div className="font-semibold text-lg">{totalPanelSqFt.toFixed(3)} sq.ft</div>
+              </div>
             </div>
 
-            {/* Add to Cart Button */}
             <button
               onClick={() =>
                 addToCart(
                   productData._id,
                   quantity,
-                  currentVariant?._id,
-                  currentColor?.name
+                  currentVariant._id,
+                  currentColor.name
                 )
               }
               className="w-full py-3.5 bg-black text-white rounded hover:bg-gray-900 transition"
@@ -503,9 +462,9 @@ export default function ProductPage() {
                   strokeLinejoin="round"
                   viewBox="0 0 24 24"
                 >
-                  <circle cx="9" cy="21" r="1"></circle>
-                  <circle cx="20" cy="21" r="1"></circle>
-                  <path d="M1 1h4l2.68 13.39a2 2 0 001.99 1.61h9.72a2 2 0 001.97-1.58L23 6H6"></path>
+                  <circle cx="9" cy="21" r="1" />
+                  <circle cx="20" cy="21" r="1" />
+                  <path d="M1 1h4l2.68 13.39a2 2 0 001.99 1.61h9.72a2 2 0 001.97-1.58L23 6H6" />
                 </svg>
                 <span>Add to Cart</span>
               </span>
@@ -522,8 +481,6 @@ export default function ProductPage() {
         <div
           onClick={toggleLightbox}
           className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 cursor-zoom-out"
-          aria-modal="true"
-          role="dialog"
         >
           <img
             src={mainImage}
@@ -533,8 +490,7 @@ export default function ProductPage() {
           />
           <button
             onClick={toggleLightbox}
-            aria-label="Close"
-            className="absolute top-5 right-5 text-white text-3xl font-bold focus:outline-none"
+            className="absolute top-5 right-5 text-white text-3xl font-bold"
           >
             &times;
           </button>
