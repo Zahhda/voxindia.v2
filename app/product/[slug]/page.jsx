@@ -273,17 +273,6 @@ export default function ProductPage() {
     setQuantity(1);
     const img = currentColors[i]?.image;
     setMainImage(img || productData.image[0]);
-
-    if (thumbnailsRef.current) {
-      const btns = thumbnailsRef.current.children;
-      const btn = btns[i];
-      if (btn) {
-        const container = thumbnailsRef.current;
-        const scrollLeft =
-          btn.offsetLeft + btn.offsetWidth / 2 - container.clientWidth / 2;
-        container.scrollTo({ left: scrollLeft, behavior: "smooth" });
-      }
-    }
   };
 
   const decrementQty = () => setQuantity((q) => Math.max(1, q - 1));
