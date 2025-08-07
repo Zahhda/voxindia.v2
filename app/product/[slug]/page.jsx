@@ -8,7 +8,7 @@ import Footer from "@/components/Footer";
 import Loading from "@/components/Loading";
 import { useAppContext } from "@/context/AppContext";
 import { ChevronDown, ChevronUp, Wrench, Truck, ShieldCheck } from "lucide-react";
-import toast from 'react-hot-toast';  // <-- added toast import
+import toast from 'react-hot-toast';
 
 const COLOR_HEX = {
   White: "#ffffff",
@@ -43,7 +43,7 @@ const WhyChooseUs = () => {
 };
 
 const accordionData = [
-   {
+  {
     id: 1,
     question: "What are VOX Linerio Slat Panels?",
     answer:
@@ -204,8 +204,7 @@ const Accordion = () => {
 
 export default function ProductPage() {
   const { slug } = useParams();
-  const { addToCart, openSidebar } = useAppContext(); // <-- assuming openSidebar exists
-  // If you don't have openSidebar in your context, remove it and see alternative below
+  const { addToCart, openSidebar } = useAppContext();
 
   const [productData, setProductData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -285,7 +284,6 @@ export default function ProductPage() {
   const perPanel = Number(productData.perPanelSqFt);
   const totalPanelSqFt = perPanel * quantity;
 
-  // Scroll thumbnails by 100px when arrows clicked
   const scrollThumbnails = (direction) => {
     if (!thumbnailsRef.current) return;
     const scrollAmount = 100;
@@ -299,14 +297,10 @@ export default function ProductPage() {
   const handleAddToCart = () => {
     addToCart(productData._id, quantity, currentVariant._id, currentColor.name);
     toast.success('Item added successfully');
-
-    // If you have openSidebar method in context, call it here:
     if (openSidebar) {
       openSidebar();
       return;
     }
-
-    // If no openSidebar, fallback to custom event:
     if (typeof window !== 'undefined' && window.dispatchEvent) {
       window.dispatchEvent(new CustomEvent('openCartSidebar'));
     }
@@ -368,7 +362,16 @@ export default function ProductPage() {
                 {combinedImages.map((img, i) => (
                   <button
                     key={i}
-                    onClick={() => selectColor(i)}
+                    onClick={() => {
+                      setMainImage(img);
+                      const colorIndex = currentColors.findIndex(c => c.image === img);
+                      if (colorIndex !== -1) {
+                        setSelectedColorIndex(colorIndex);
+                      } else {
+                        setSelectedColorIndex(-1);
+                      }
+                      setQuantity(1);
+                    }}
                     type="button"
                     className={`w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 cursor-pointer border-2 transition-transform hover:scale-105 ${
                       mainImage === img ? "border-orange-500" : "border-transparent"
@@ -506,7 +509,6 @@ export default function ProductPage() {
               </div>
             </div>
 
-            {/* Updated Add to Cart Button */}
             <button
               onClick={handleAddToCart}
               className="w-full py-3.5 bg-black text-white rounded hover:bg-gray-900 transition"
