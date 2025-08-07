@@ -145,17 +145,17 @@ const Footer = () => {
             <h3 className="font-semibold mb-4">Products</h3>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="/product/6882edb775fde2ca4e81543a" className="hover:underline">
+                <Link href="/product/vox-s-line-wall-panel" className="hover:underline">
                   S-Line
                 </Link>
               </li>
               <li>
-                <Link href="/product/6882ef8a75fde2ca4e815629" className="hover:underline">
+                <Link href="/product/vox-m-line-wall-panel" className="hover:underline">
                   M-Line
                 </Link>
               </li>
               <li>
-                <Link href="/product/6882f06b75fde2ca4e8156b6" className="hover:underline">
+                <Link href="/product/vox-l-line-wall-panel" className="hover:underline">
                   L-Line
                 </Link>
               </li>
