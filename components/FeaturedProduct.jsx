@@ -31,6 +31,7 @@ const collections = [
 const OurCollections = () => {
   return (
     <div
+      id="collections"
       className="mt-16 px-4 md:px-12"
       style={{
         fontFamily:

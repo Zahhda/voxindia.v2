@@ -5,7 +5,7 @@ import Footer from "@/components/Footer";
 import { useRouter } from "next/navigation";
 
 const ContactPage = () => {
-  const [form, setForm] = useState({ name: "", email: "", message: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", altPhone: "", message: "" });
   const [popup, setPopup] = useState({ visible: false, message: "" });
   const router = useRouter();
 
@@ -39,7 +39,7 @@ const ContactPage = () => {
 
       if (data.success) {
         // Redirect immediately on success
-        setForm({ name: "", email: "", message: "" });
+        setForm({ name: "", email: "", phone: "", altPhone: "", message: "" });
         router.push("/thank-you");
       } else {
         // Show popup on failure
@@ -93,6 +93,19 @@ const ContactPage = () => {
                   required
                   className="w-full border border-gray-300 px-4 py-3 rounded-md focus:outline-none focus:ring-2 focus:ring-red-600 transition"
                   placeholder="your.email@example.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold mb-2">Phone Number</label>
+                <input
+                  type="tel"
+                  name="phone"
+                  value={form.phone}
+                  onChange={handleChange}
+                  required
+                  className="w-full border border-gray-300 px-4 py-3 rounded-md focus:outline-none focus:ring-2 focus:ring-red-600 transition"
+                  placeholder="e.g. +91 98765 43210"
                 />
               </div>
 

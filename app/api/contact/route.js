@@ -10,9 +10,9 @@ const transporter = nodemailer.createTransport({
 
 export async function POST(request) {
   try {
-    const { name, email, message } = await request.json();
+    const { name, email, phone, altPhone, message } = await request.json();
 
-    if (!name || !email || !message) {
+    if (!name || !email || !phone || !message) {
       return new Response(
         JSON.stringify({ success: false, message: "Missing required fields" }),
         { status: 400, headers: { "Content-Type": "application/json" } }
@@ -26,6 +26,8 @@ export async function POST(request) {
       html: `
         <p><strong>Name:</strong> ${name}</p>
         <p><strong>Email:</strong> ${email}</p>
+        <p><strong>Phone:</strong> ${phone}</p>
+        ${altPhone ? `<p><strong>Alternate Phone:</strong> ${altPhone}</p>` : ""}
         <p><strong>Message:</strong><br/>${message.replace(/\n/g, "<br/>")}</p>
       `,
     };

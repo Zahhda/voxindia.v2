@@ -25,9 +25,11 @@ const HeaderSlider = () => {
             Premium slatted wall and ceiling panels for modern interiors. 100% recyclable, lightweight, and easy to install.
           </h5>
           <div className="mt-6 sm:mt-8">
-            <button className="px-6 py-3 bg-[#e80808] hover:bg-red-800 rounded-md text-white text-base font-semibold transition">
-              Explore Collection
-            </button>
+            <a href="#collections">
+              <button className="px-6 py-3 bg-[#e80808] hover:bg-red-800 rounded-md text-white text-base font-semibold transition">
+                Explore Collection
+              </button>
+            </a>
           </div>
         </div>
       </div>
